@@ -490,3 +490,10 @@ summary(num_b4_delay) # not quite right.  Want to count flights before dleay > 6
 
 ```
 
+#### Tips
+
+1.  new shortcut : Ctrl + Shift + 1/2/3/4 to turn one of the panes to full-screen - nice!
+
+2.  Switch tabs w/o muscle cramps: switch between open tabs w/ Ctrl+Tab. (go the other direction with Ctrl + Tab + Shift)
+
+3.  Jump quickly between the source and console via keyboard: Ctrl+1 to focus source, Ctrl+2 to focus console.  

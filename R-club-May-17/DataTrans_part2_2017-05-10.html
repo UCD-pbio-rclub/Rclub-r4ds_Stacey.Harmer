@@ -584,10 +584,8 @@ filter(on_time_99/count == 0.99)
 no_arr_delay &lt;- filter(flights, !is.na(dep_delay), is.na(arr_delay))
 #  About 1200 flights have NA for arrival delay, but do report a dep_delay.
 
-View(no_arr_delay)</code></pre>
-<pre><code>## Warning: running command ''/usr/bin/otool' -L '/Library/Frameworks/
-## R.framework/Resources/modules/R_de.so'' had status 69</code></pre>
-<pre class="r"><code>summary(no_arr_delay)</code></pre>
+View(no_arr_delay)
+summary(no_arr_delay)</code></pre>
 <pre><code>##       year          month             day           dep_time   
 ##  Min.   :2013   Min.   : 1.000   Min.   : 1.00   Min.   :   5  
 ##  1st Qu.:2013   1st Qu.: 4.000   1st Qu.: 8.00   1st Qu.:1054  
@@ -990,6 +988,14 @@ head(num_b4_delay)</code></pre>
 ##  3rd Qu.:17.00   3rd Qu.:44.00   3rd Qu.:2013-10-03 14:00:00  
 ##  Max.   :23.00   Max.   :59.00   Max.   :2013-12-31 23:00:00</code></pre>
 </div>
+</div>
+<div id="tips" class="section level4">
+<h4>Tips</h4>
+<ol style="list-style-type: decimal">
+<li><p>new shortcut : Ctrl + Shift + 1/2/3/4 to turn one of the panes to full-screen - nice!</p></li>
+<li><p>Switch tabs w/o muscle cramps: switch between open tabs w/ Ctrl+Tab. (go the other direction with Ctrl + Tab + Shift)</p></li>
+<li><p>Jump quickly between the source and console via keyboard: Ctrl+1 to focus source, Ctrl+2 to focus console.</p></li>
+</ol>
 </div>
 </div>
 

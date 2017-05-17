@@ -643,14 +643,6 @@ no_arr_delay <- filter(flights, !is.na(dep_delay), is.na(arr_delay))
 #  About 1200 flights have NA for arrival delay, but do report a dep_delay.
 
 View(no_arr_delay)
-```
-
-```
-## Warning: running command ''/usr/bin/otool' -L '/Library/Frameworks/
-## R.framework/Resources/modules/R_de.so'' had status 69
-```
-
-```r
 summary(no_arr_delay)
 ```
 
@@ -1168,3 +1160,10 @@ summary(num_b4_delay) # not quite right.  Want to count flights before dleay > 6
 ##  Max.   :23.00   Max.   :59.00   Max.   :2013-12-31 23:00:00
 ```
 
+#### Tips
+
+1.  new shortcut : Ctrl + Shift + 1/2/3/4 to turn one of the panes to full-screen - nice!
+
+2.  Switch tabs w/o muscle cramps: switch between open tabs w/ Ctrl+Tab. (go the other direction with Ctrl + Tab + Shift)
+
+3.  Jump quickly between the source and console via keyboard: Ctrl+1 to focus source, Ctrl+2 to focus console.  
