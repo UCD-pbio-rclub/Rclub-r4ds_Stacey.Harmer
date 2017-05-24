@@ -282,38 +282,90 @@ ggplot(flights) +
 diamonds_NA <- diamonds %>% 
   mutate(y = ifelse(y < 3 | y > 20, NA, y))
 
-diamonds_NA2 <- diamonds %>% 
-  mutate(cut = if_else(runif(n()) < 0.1, NA_character_, as.character(cut)))
-
-ggplot(diamonds_NA2) +
-  geom_bar(mapping = aes(x = cut))
+ggplot(diamonds_NA) +
+  geom_bar(mapping = aes(x = cut))  # no NA are graphed, and no error
 ```
 
 ![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-8-4.png)<!-- -->
 
 ```r
-diamonds_NA2  # ran without error, because now NA just another category
+str(diamonds_NA) # cut is a factor
 ```
 
 ```
-## # A tibble: 53,940 × 10
-##    carat       cut color clarity depth table price     x     y     z
-##    <dbl>     <chr> <ord>   <ord> <dbl> <dbl> <int> <dbl> <dbl> <dbl>
-## 1   0.23     Ideal     E     SI2  61.5    55   326  3.95  3.98  2.43
-## 2   0.21   Premium     E     SI1  59.8    61   326  3.89  3.84  2.31
-## 3   0.23      Good     E     VS1  56.9    65   327  4.05  4.07  2.31
-## 4   0.29   Premium     I     VS2  62.4    58   334  4.20  4.23  2.63
-## 5   0.31      Good     J     SI2  63.3    58   335  4.34  4.35  2.75
-## 6   0.24 Very Good     J    VVS2  62.8    57   336  3.94  3.96  2.48
-## 7   0.24 Very Good     I    VVS1  62.3    57   336  3.95  3.98  2.47
-## 8   0.26 Very Good     H     SI1  61.9    55   337  4.07  4.11  2.53
-## 9   0.22      Fair     E     VS2  65.1    61   337  3.87  3.78  2.49
-## 10  0.23 Very Good     H     VS1  59.4    61   338  4.00  4.05  2.39
-## # ... with 53,930 more rows
+## Classes 'tbl_df', 'tbl' and 'data.frame':	53940 obs. of  10 variables:
+##  $ carat  : num  0.23 0.21 0.23 0.29 0.31 0.24 0.24 0.26 0.22 0.23 ...
+##  $ cut    : Ord.factor w/ 5 levels "Fair"<"Good"<..: 5 4 2 4 2 3 3 3 1 3 ...
+##  $ color  : Ord.factor w/ 7 levels "D"<"E"<"F"<"G"<..: 2 2 2 6 7 7 6 5 2 5 ...
+##  $ clarity: Ord.factor w/ 8 levels "I1"<"SI2"<"SI1"<..: 2 3 5 4 2 6 7 3 4 5 ...
+##  $ depth  : num  61.5 59.8 56.9 62.4 63.3 62.8 62.3 61.9 65.1 59.4 ...
+##  $ table  : num  55 61 65 58 58 57 57 55 61 61 ...
+##  $ price  : int  326 326 327 334 335 336 336 337 337 338 ...
+##  $ x      : num  3.95 3.89 4.05 4.2 4.34 3.94 3.95 4.07 3.87 4 ...
+##  $ y      : num  3.98 3.84 4.07 4.23 4.35 3.96 3.98 4.11 3.78 4.05 ...
+##  $ z      : num  2.43 2.31 2.31 2.63 2.75 2.48 2.47 2.53 2.49 2.39 ...
 ```
+
+```r
+diamonds_NA2 <- diamonds %>% 
+  mutate(cut = if_else(runif(n()) < 0.1, NA_character_, as.character(cut)))
+summary(diamonds_NA2)
+```
+
+```
+##      carat            cut            color        clarity     
+##  Min.   :0.2000   Length:53940       D: 6775   SI1    :13065  
+##  1st Qu.:0.4000   Class :character   E: 9797   VS2    :12258  
+##  Median :0.7000   Mode  :character   F: 9542   SI2    : 9194  
+##  Mean   :0.7979                      G:11292   VS1    : 8171  
+##  3rd Qu.:1.0400                      H: 8304   VVS2   : 5066  
+##  Max.   :5.0100                      I: 5422   VVS1   : 3655  
+##                                      J: 2808   (Other): 2531  
+##      depth           table           price             x         
+##  Min.   :43.00   Min.   :43.00   Min.   :  326   Min.   : 0.000  
+##  1st Qu.:61.00   1st Qu.:56.00   1st Qu.:  950   1st Qu.: 4.710  
+##  Median :61.80   Median :57.00   Median : 2401   Median : 5.700  
+##  Mean   :61.75   Mean   :57.46   Mean   : 3933   Mean   : 5.731  
+##  3rd Qu.:62.50   3rd Qu.:59.00   3rd Qu.: 5324   3rd Qu.: 6.540  
+##  Max.   :79.00   Max.   :95.00   Max.   :18823   Max.   :10.740  
+##                                                                  
+##        y                z         
+##  Min.   : 0.000   Min.   : 0.000  
+##  1st Qu.: 4.720   1st Qu.: 2.910  
+##  Median : 5.710   Median : 3.530  
+##  Mean   : 5.735   Mean   : 3.539  
+##  3rd Qu.: 6.540   3rd Qu.: 4.040  
+##  Max.   :58.900   Max.   :31.800  
+## 
+```
+
+```r
+str(diamonds_NA2)  # cut is a character, not a factor
+```
+
+```
+## Classes 'tbl_df', 'tbl' and 'data.frame':	53940 obs. of  10 variables:
+##  $ carat  : num  0.23 0.21 0.23 0.29 0.31 0.24 0.24 0.26 0.22 0.23 ...
+##  $ cut    : chr  "Ideal" "Premium" "Good" "Premium" ...
+##  $ color  : Ord.factor w/ 7 levels "D"<"E"<"F"<"G"<..: 2 2 2 6 7 7 6 5 2 5 ...
+##  $ clarity: Ord.factor w/ 8 levels "I1"<"SI2"<"SI1"<..: 2 3 5 4 2 6 7 3 4 5 ...
+##  $ depth  : num  61.5 59.8 56.9 62.4 63.3 62.8 62.3 61.9 65.1 59.4 ...
+##  $ table  : num  55 61 65 58 58 57 57 55 61 61 ...
+##  $ price  : int  326 326 327 334 335 336 336 337 337 338 ...
+##  $ x      : num  3.95 3.89 4.05 4.2 4.34 3.94 3.95 4.07 3.87 4 ...
+##  $ y      : num  3.98 3.84 4.07 4.23 4.35 3.96 3.98 4.11 3.78 4.05 ...
+##  $ z      : num  2.43 2.31 2.31 2.63 2.75 2.48 2.47 2.53 2.49 2.39 ...
+```
+
+```r
+ggplot(diamonds_NA2) +
+  geom_bar(mapping = aes(x = cut))
+```
+
+![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-8-5.png)<!-- -->
 
 With geom_histogram, NA values are just discarded
-with geom_bar, if the values are characters and not numbers, it will make an NA category.
+with geom_bar, if the values are characters and not numbers (or factors), it will make an NA category.
 
 otherwise, geom_bar will discard NA values like geom_histogram
 
@@ -794,7 +846,7 @@ str(flights)
 ```r
 flights %>% 
   group_by(month, dest) %>% 
-  select(month , dest, mean_delay = mean(arr_delay, na.rm = TRUE)) %>% 
+  summarize(mean_delay = mean(arr_delay, na.rm = TRUE)) %>% 
   ggplot(mapping = aes(x = factor(month), y = dest)) +
   geom_tile(aes(fill = mean_delay))
 ```
@@ -813,10 +865,10 @@ library(viridis)
 ```r
 flights %>% 
   group_by(month, dest) %>% 
-  select(month , dest, mean_delay = mean(arr_delay, na.rm = TRUE)) %>% 
+  summarize(mean_delay = mean(arr_delay, na.rm = TRUE)) %>% 
   group_by(dest) %>% 
   ungroup() %>% 
-  arrange (mean_delay, dest) %>% 
+  arrange(mean_delay, dest) %>% 
   ggplot(mapping = aes(x = factor(month), y = dest)) +
   geom_tile(aes(fill = mean_delay)) + 
   scale_fill_viridis()
@@ -825,7 +877,7 @@ flights %>%
 ![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-19-2.png)<!-- -->
 
 ```r
-# sorting didn't help much; for some reason, it increased NAs;  why??
+# sorting this way didn't help much
 ```
 
 the example solution is below
@@ -848,25 +900,6 @@ flights %>%
 ```
 
 ![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
-
-```r
-# try with bigger dataset
-
-
-flights %>%
-  group_by(month, dest) %>%
-  summarise(dep_delay = mean(dep_delay, na.rm = TRUE)) %>%
-  group_by(dest) %>%
-  filter(n() >= 12) %>%  # why do this? why not >= 12?
-  ungroup() %>%  # same; 1008 rows
-  mutate(dest = fct_reorder(dest, dep_delay)) %>%  # ordered by destination, which is now a factor
-  ggplot(aes(x = factor(month), y = dest, fill = dep_delay)) +
-  geom_tile() +
-  scale_fill_viridis() +
-  labs(x = "Month", y = "Destination", fill = "Departure Delay")  # looks same as above
-```
-
-![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-20-2.png)<!-- -->
 
 ##### 7.5.2.3   Why is it slightly better to use aes(x = color, y = cut) rather than aes(x = cut, y = color) in the example above?
 

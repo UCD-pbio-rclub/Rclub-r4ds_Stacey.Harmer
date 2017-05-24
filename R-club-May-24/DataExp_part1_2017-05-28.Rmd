@@ -162,17 +162,22 @@ ggplot(flights) +
 diamonds_NA <- diamonds %>% 
   mutate(y = ifelse(y < 3 | y > 20, NA, y))
 
+ggplot(diamonds_NA) +
+  geom_bar(mapping = aes(x = cut))  # no NA are graphed, and no error
+str(diamonds_NA) # cut is a factor
+
 diamonds_NA2 <- diamonds %>% 
   mutate(cut = if_else(runif(n()) < 0.1, NA_character_, as.character(cut)))
+summary(diamonds_NA2)
+str(diamonds_NA2)  # cut is a character, not a factor
 
 ggplot(diamonds_NA2) +
   geom_bar(mapping = aes(x = cut))
 
-diamonds_NA2  # ran without error, because now NA just another category
 ```
 
 With geom_histogram, NA values are just discarded
-with geom_bar, if the values are characters and not numbers, it will make an NA category.
+with geom_bar, if the values are characters and not numbers (or factors), it will make an NA category.
 
 otherwise, geom_bar will discard NA values like geom_histogram
 
@@ -442,7 +447,7 @@ str(flights)
 
 flights %>% 
   group_by(month, dest) %>% 
-  select(month , dest, mean_delay = mean(arr_delay, na.rm = TRUE)) %>% 
+  summarize(mean_delay = mean(arr_delay, na.rm = TRUE)) %>% 
   ggplot(mapping = aes(x = factor(month), y = dest)) +
   geom_tile(aes(fill = mean_delay))
  
@@ -451,15 +456,15 @@ library(viridis)
 
 flights %>% 
   group_by(month, dest) %>% 
-  select(month , dest, mean_delay = mean(arr_delay, na.rm = TRUE)) %>% 
+  summarize(mean_delay = mean(arr_delay, na.rm = TRUE)) %>% 
   group_by(dest) %>% 
   ungroup() %>% 
-  arrange (mean_delay, dest) %>% 
+  arrange(mean_delay, dest) %>% 
   ggplot(mapping = aes(x = factor(month), y = dest)) +
   geom_tile(aes(fill = mean_delay)) + 
   scale_fill_viridis()
  
-# sorting didn't help much; for some reason, it increased NAs;  why??
+# sorting this way didn't help much
 
 ```
 
@@ -479,21 +484,6 @@ flights %>%
   geom_tile() +
   scale_fill_viridis() +
   labs(x = "Month", y = "Destination", fill = "Departure Delay")
-
-# try with bigger dataset
-
-
-flights %>%
-  group_by(month, dest) %>%
-  summarise(dep_delay = mean(dep_delay, na.rm = TRUE)) %>%
-  group_by(dest) %>%
-  filter(n() >= 12) %>%  # why do this? why not >= 12?
-  ungroup() %>%  # same; 1008 rows
-  mutate(dest = fct_reorder(dest, dep_delay)) %>%  # ordered by destination, which is now a factor
-  ggplot(aes(x = factor(month), y = dest, fill = dep_delay)) +
-  geom_tile() +
-  scale_fill_viridis() +
-  labs(x = "Month", y = "Destination", fill = "Departure Delay")  # looks same as above
 
 ```
 
