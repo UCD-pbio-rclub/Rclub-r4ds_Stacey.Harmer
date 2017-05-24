@@ -301,12 +301,17 @@ ggplot(diamonds, mapping = aes(x = y)) +
   coord_cartesian(ylim = c(0,50)) +
   coord_flip()  # ignores my xlim
 
-#ggplot(diamonds) +
-#  geom_histogramh(mapping = aes(x = y), binwidth = 0.5)
+
+ggplot(diamonds, mapping = aes(x = y)) +
+  geom_histogram(binwidth = 0.5) +
+    coord_flip(ylim = c(0,50)) # now this works
+
+# ggplot(diamonds) +
+ # geom_histogramh(mapping = aes(x = y), binwidth = 0.5)
  # that doesn't run: I think I need a y aesthetic
 
-#ggplot(diamonds, mapping = aes(y = y)) +
-#  geom_histogramh(binwidth = .1) 
+# ggplot(diamonds, mapping = aes(y = y)) +
+#  geom_histogramh() 
 # not sure why that won't run.  
 
 # try a boxplot instead

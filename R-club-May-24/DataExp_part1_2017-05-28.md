@@ -593,12 +593,20 @@ ggplot(diamonds, mapping = aes(x = y)) +
 ![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-13-3.png)<!-- -->
 
 ```r
-#ggplot(diamonds) +
-#  geom_histogramh(mapping = aes(x = y), binwidth = 0.5)
+ggplot(diamonds, mapping = aes(x = y)) +
+  geom_histogram(binwidth = 0.5) +
+    coord_flip(ylim = c(0,50)) # now this works
+```
+
+![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-13-4.png)<!-- -->
+
+```r
+# ggplot(diamonds) +
+ # geom_histogramh(mapping = aes(x = y), binwidth = 0.5)
  # that doesn't run: I think I need a y aesthetic
 
-#ggplot(diamonds, mapping = aes(y = y)) +
-#  geom_histogramh(binwidth = .1) 
+# ggplot(diamonds, mapping = aes(y = y)) +
+#  geom_histogramh() 
 # not sure why that won't run.  
 
 # try a boxplot instead
@@ -608,14 +616,14 @@ ggplot(data = mpg) +
   coord_flip()
 ```
 
-![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-13-4.png)<!-- -->
+![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-13-5.png)<!-- -->
 
 ```r
 ggplot(data = mpg) +
   geom_boxploth(mapping = aes(y = reorder(class, hwy, FUN = median), x = hwy)) 
 ```
 
-![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-13-5.png)<!-- -->
+![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-13-6.png)<!-- -->
 
 ```r
 # that runs fine.  

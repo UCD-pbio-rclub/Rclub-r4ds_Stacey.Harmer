@@ -53,3 +53,6 @@ ans.ex <- ans.ex %>%
 
 head(ans.ex, n = 28)
 View(ans.ex)
+
+df <- data.frame(abc = 1)
+df
