@@ -77,5 +77,5 @@ leaf.area.pairs.teth.4 <- leaf.area.pairs.teth +
   ylab("leaf.area.tethered") + xlab("leaf pair")
 
 grid.arrange(pl.teth.mass.bar.2, leaf.area.pairs.teth.4,
-             ncol=2, nrow=1, widths=c(2, 3.2), heights=c(1.4))  
+             ncol=2, nrow=1, widths=c(1, 3.2), heights=c(1.4))  # 
 

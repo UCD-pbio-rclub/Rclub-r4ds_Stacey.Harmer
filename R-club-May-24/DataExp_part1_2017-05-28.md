@@ -119,6 +119,7 @@ ggplot(small) +
 ```
 
 ![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-3-6.png)<!-- -->
+
 Easy to see that z smaller than x or y.  I suspect x and y are arbitrary.
 
 ##### 7.3.4.2   Explore the distribution of price. Do you discover anything unusual or surprising? (Hint: Carefully think about the binwidth and make sure you try a wide range of values.)
@@ -158,6 +159,7 @@ carat.99 <- diamonds %>%
 carat.1 <- diamonds %>% 
   filter(carat == 1)  #1,558
 ```
+
 Presumably this is due to rounding
 
 ##### 7.3.4.4  Compare and contrast coord_cartesian() vs xlim() or ylim() when zooming in on a histogram. What happens if you leave binwidth unset? What happens if you try and zoom so only half a bar shows?
@@ -184,7 +186,8 @@ ggplot(diamonds) +
 ```
 
 ![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-6-2.png)<!-- -->
-coord_cartesian will print teh data to the very edge of the chart
+
+coord_cartesian will print the data to the very edge of the chart
 
 
 ```r
@@ -308,6 +311,7 @@ diamonds_NA2  # ran without error, because now NA just another category
 ## 10  0.23 Very Good     H     VS1  59.4    61   338  4.00  4.05  2.39
 ## # ... with 53,930 more rows
 ```
+
 With geom_histogram, NA values are just discarded
 with geom_bar, if the values are characters and not numbers, it will make an NA category.
 
@@ -473,6 +477,7 @@ ggplot(diamonds, mapping = aes(x = table, y = price)) +
 ```
 
 ![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-11-7.png)<!-- -->
+
 (So looks like carat and color are what matter most)
 
 How is carat correlated with cut?
@@ -483,6 +488,7 @@ ggplot(diamonds, mapping = aes(x = cut, y = carat)) +
 ```
 
 ![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+
 Carat and cut appear almost _inversely_ correlated.
 (with 'premium' cut class the exception)
 
@@ -738,6 +744,7 @@ ggplot(data = diamonds, mapping = aes(x = color)) +
 ```
 
 ![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-17-5.png)<!-- -->
+
 The solutions page suggests the following:
 
 
@@ -889,6 +896,7 @@ diamonds %>%
 ```r
 # can't see any color variation across first column (fair)
 ```
+
 They seem very similar to me.  But maybe better to have more columns than rows?   
 
 ### 7.5.3 Two continuous variables
@@ -1006,4 +1014,85 @@ ggplot(data = smaller, mapping = aes(x = price, y = color)) +
 
 ##### 7.5.3.2 Visualise the distribution of carat, partitioned by price.
 
+I think the goal is to bin carat and then plot carat on y axis.  Note this is almost the same as the example in the book.
 
+```r
+ggplot(data = smaller, mapping = aes(y = carat, x = price)) + 
+  geom_boxplot(mapping = aes(group = cut_width(price, 1000)))
+```
+
+![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-25-1.png)<!-- -->
+
+##### 7.5.3.3 How does the price distribution of very large diamonds compare to small diamonds. Is it as you expect, or does it surprise you?
+
+For the smaller diamonds, there appears to be a good correlation between size and price.  But after about 1.5 carats, that relationship is less apparent.  Perhaps once diamonds get to be a certain size, the quality of the stone is more important in determining price.
+
+##### 7.5.3.4 Combine two of the techniques you’ve learned to visualise the combined distribution of cut, carat, and price.
+
+Perhaps graph carat by price but group by cut?  
+
+
+```r
+# can I use 'color' with geom_count?
+
+ggplot(data = smaller) + 
+  geom_count(mapping = aes(x = carat, y = price, color = cut))
+```
+
+![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-26-1.png)<!-- -->
+
+```r
+# that doesn't seem to address the question adequately
+
+ggplot(data = smaller) + 
+  geom_hex(mapping = aes(x = carat, y = price, color = cut)) +
+  facet_grid(. ~ cut)
+```
+
+![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-26-2.png)<!-- -->
+
+```r
+# or maybe
+
+ggplot(data = smaller, mapping = aes(x = carat, y = price)) + 
+  geom_boxplot(mapping = aes(group = cut_width(carat, 0.5), fill = cut)) +
+  facet_grid(. ~ cut)
+```
+
+![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-26-3.png)<!-- -->
+
+```r
+# differnece between color and fill is outline only vs middle of object
+
+ggplot(data = smaller, mapping = aes(x = carat, y = price)) + 
+  geom_boxplot(mapping = aes(group = cut_width(carat, 0.5), color = cut)) +
+  facet_grid(. ~ cut)
+```
+
+![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-26-4.png)<!-- -->
+
+##### 7.5.3.5 Two dimensional plots reveal outliers that are not visible in one dimensional plots. For example, some points in the plot below have an unusual combination of x and y values, which makes the points outliers even though their x and y values appear normal when examined separately.
+
+
+```r
+ggplot(data = diamonds) +
+  geom_point(mapping = aes(x = x, y = y)) +
+  coord_cartesian(xlim = c(4, 11), ylim = c(4, 11))
+```
+
+![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-27-1.png)<!-- -->
+
+Why is a scatterplot a better display than a binned plot for this case?
+
+I would guess because a binned plot would not show me those outliers (Unless the bins were so small as to make the plot illegible)
+
+
+```r
+ggplot(data = diamonds, mapping = aes(x = x, y = y)) +
+  geom_boxplot(mapping = aes(group = cut_width(x, .5))) +
+  coord_cartesian(xlim = c(4, 11), ylim = c(4, 11))
+```
+
+![](DataExp_part1_2017-05-28_files/figure-html/unnamed-chunk-28-1.png)<!-- -->
+
+Actually, I do detect these outliers.  But they don't pop out of the plot as readily as in the first example

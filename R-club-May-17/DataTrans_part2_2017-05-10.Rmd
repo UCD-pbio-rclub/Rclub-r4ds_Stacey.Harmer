@@ -453,7 +453,8 @@ times <- not_cancelled %>%
   mutate(flight_time_mean = mean(air_time),
          fold_flight_mean = air_time / flight_time_mean
          ) %>%
-  arrange(fold_flight_mean)
+  arrange(fold_flight_mean) %>%
+  select(year:day, flight_time_mean, air_time, fold_flight_mean)
 
 head(times)
 
@@ -497,3 +498,7 @@ summary(num_b4_delay) # not quite right.  Want to count flights before dleay > 6
 2.  Switch tabs w/o muscle cramps: switch between open tabs w/ Ctrl+Tab. (go the other direction with Ctrl + Tab + Shift)
 
 3.  Jump quickly between the source and console via keyboard: Ctrl+1 to focus source, Ctrl+2 to focus console.  
+
+4. Ctrl + shift + M gives the pipe ( %>% )
+
+

@@ -2,29 +2,437 @@
 title: "DataTrans_part1_2017-05-04.Rmd"
 author: "Stacey Harmer"
 date: "5/4/2017"
-output: html_document
+output: 
+  html_document: 
+    keep_md: yes
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+### Data Transformation (Ch 3 in book, Ch 5 online)
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+library(nycflights13)
+library(tidyverse)
+flights
 ```
 
-## Including Plots
+#### 5.2  Filter rows with filter
+This allows you to subset based on values.
+```{r}
+jan1 <- filter(flights, month == 1, day == 1)
+near(sqrt(2)^2, 2) # kind of neat
+```
+###### comparisons
+remember 'near'
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+###### logical operators
+remember 'is.na' 
+```{r}
+df <- tibble(x = c(1, NA, 3))
+filter(df, x > 1)
+filter(df, is.na(x) | x > 1)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+##### 5.2.4  Exercises
+
+##### 5.2.4.1  Find all flights that:
+```{r}
+# 1.  had arrival delay > 2 hrs
+
+(delay <- filter(flights, arr_delay > 120))
+summary(delay)
+
+# 2. flew to IAH or HOU
+(hou <- filter(flights, dest == "IAH" | dest == "HOU" ))
+
+# 3.  Operated by United, America, Delta
+(carr <- filter(flights, carrier == "UA"| carrier == "AA" | carrier == "DL"))
+summary(carr) # note that NAs are still included
+
+summary(carr) # note that NAs are still included
+(carr2 <- filter(flights, !is.na(dep_delay), carrier == "UA"| carrier == "AA" | carrier == "DL"))
+summary(carr2) #NAs not in this tibble
+
+# 4. departed in summer
+(summ <- filter(flights, month == 7 | month == 8 | month == 9))
+
+# 5. left without delay, but arrived more than 2 hrs late
+(slow <- filter(flights, dep_delay <= 0 & arr_delay > 120))
+
+# 6. delayed at least 1 hr, but arrived < 30 min late
+(fast <- filter(flights, dep_delay >= 60 & arr_delay <= 30))
+
+# 7. departed between midnight and 6 am
+(late <- filter(flights, dep_time <= 0600 | dep_time == 2400))
+```
+
+##### 5.2.4.2  What does between() do?
+```{r}
+?between
+between(1:10, 4, 6)  # returns list of T/F 
+
+# simplify any of the above code?
+# yes, number 4
+
+(summ2 <- flights[between(flights$month, 7, 9) ,])
+
+# or, 
+summ3 <- filter(flights, between(month, 7, 9))
+
+library(compare)
+compare(summ, summ2)  #TRUE.  so this did work as expected
+compare(summ, summ3)  # TRUE also
+```
+
+##### 5.2.4.3  How many flights have a missing dep_time?
+```{r}
+summary(flights)
+# 8255 flights don't list a departure time, although they did all have scheduled dep_times
+# same number (8255) also lack dep_delay; same flights.  
+# arr_time missing for 8713; arr_delay missing for 9430
+# I'm not sure why these are different.  
+
+# anyway, presumably some flights never took off (8255) and then additional flights didn't make it to their final destination
+
+```
+
+##### 5.2.4.4  NA
+```{r}
+NA ^ 0 # 1; because any positive number to 0 = 1 (but what about negative?)
+-5 ^ 0
+NA | TRUE  #True; that makes sense (| means or, after all)
+FALSE & NA # False.  why not NA?  well, can't be TRUE.
+# if something is False, it is False no matter other attributes
+
+NA * 0  # NA.  why not 0??  
+ -1 * 0 # 0
+Inf * 0 # NaN
+#  so x * 0 is not always 0
+```
+
+#### 5.3  Arrange rows with arrange
+Changes order of rows.  usage seems pretty intuitive
+```{r}
+arrange(flights, year, month, day)
+```
+Can stick 'desc()' in there to reverse order of sorting
+
+##### 5.3.1  Exercises
+
+###### 5.3.1.1  use arrange() to sort all NAs to the start
+```{r}
+sort.NA.top <- arrange(flights, desc(is.na(arr_delay)))
+head(sort.NA.top) # seemed to work
+```
+
+###### 5.3.1.2.  sort flights to find most delayed flights
+```{r}
+(del.flight <- arrange(flights, desc(dep_delay)))
+head(del.flight)
+# "find the flights that left the earliest"
+# not sure what that means. The least delayed flights?
+
+```
+
+##### 5.3.1.3.  Sort flights to find fastest flights
+```{r}
+?flights
+# this might mean find the shortest flights
+short.flights <- arrange(flights, air_time)
+head(short.flights)
+
+# or, might mean fastest rate of travel (distance/air_time)
+flights.rate <- flights
+flights.rate$mpm <- flights$distance / flights$air_time
+
+fast.flights <- arrange(flights.rate, desc(mpm))
+
+```
+Fastest flight is 11.7 miles per minute, or 702 miles per hour
+
+###### 5.3.1.4.  longest and shortest flights
+```{r}
+
+summary(flights)
+# min is 17 ; max is 4982 miles
+```
+
+
+#### 5.4  Select columns with select
+Some regular expressions are possible here
+```{r}
+select(flights, starts_with("c"))
+select(flights, ends_with("e"))
+
+```
+rename() looks very useful
+```{r}
+str(iris)
+# rename(iris, Species = species) # failed. Error: Unknown variables: species.
+rename(iris, species = Species) # that worked! new name first, previous name second
+str(flights)
+tailnum <- rename(flights, tail_num = tailnum) # that worked
+str(tailnum) # now 'tailnum' replaced by 'tail_num'
+
+select(flights, arr_time, dep_time, everything()) # this worked
+```
+
+##### 5.4.1  Exercises
+
+###### 5.4.1.1. Think of lots of ways to select dep_time, dep_delay, arr_time, and arr_delay
+
+```{r}
+dep_arr <- c("dep_time", "arr_time", "dep_delay", "arr_delay")
+select(flights, one_of(dep_arr)) # that worked
+
+select(flights, dep_time, dep_delay, arr_time, arr_delay)
+# that worked
+
+select(flights, starts_with("dep"), starts_with("arr"))
+# that worked
+
+str(flights) #these are columns 4, 6, 7, 9
+select(flights, c(4,6,7,9)) # that worked
+
+select(flights, contains("e")) # too many columns; didn't work!
+
+```
+
+###### 5.4.1.2. include name of avariable multilple times in select()
+```{r}
+select(flights, dep_delay, dep_delay)
+select(flights, dep_delay) # these seem the same; redundant calls ignored
+```
+
+###### 5.4.1.3. what does one_of() funciton do?
+```{r}
+vars <- c("year", "month", "day", "dep_delay", "arr_delay")
+
+select(flights, one_of(vars)) # I got all 5 columns; returns columns that match one of above
+```
+Note that this allows us to deal with character vector, not just unquoted variable names.
+
+
+###### 5.4.1.4.  run code and explain 
+```{r}
+select(flights, contains("TIME"))
+# I am surprised; it ignored case.  
+
+select(flights, contains("TIME", ignore.case = FALSE))
+# but now it doesn't
+```
+
+#### 5.5  Mutate - add new variables
+```{r}
+flights_sml <- select(flights, 
+  year:day, 
+  ends_with("delay"), 
+  distance, 
+  air_time
+)
+head(flights_sml)
+
+mutate(flights_sml,
+  gain = arr_delay - dep_delay,
+  speed = distance / air_time * 60
+)
+```
+interestingly, function transmute() just puts products of new operation into new tibble
+```{r}
+transmute(flights,
+  gain = arr_delay - dep_delay,
+  hours = air_time / 60,
+  gain_per_hour = gain / hours
+)
+```
+
+#### 5.5.1  Useful creation functions
+Lots of ways to create new columns/variables.
+Remember recycling rule for parameter length
+
+modular arithmetic: %% indicates x mod y and %/% indicates integer division,
+or "x %% y	means _remainder of x divided by y (x mod y)_" 
+and "x %/% y	means _x divided by y but rounded down (integer divide)_"
+
+Offsets - lead() and lag()
+```{r}
+x <- 1:10
+lag(x)
+lead(x)  
+# note the NA within the output
+```
+cumulative and rolling aggregates
+```{r}
+x
+cumsum(x)
+cummean(x)
+```
+
+ranking
+```{r}
+y <- c(1, 2, 2, NA, 3, 4)
+min_rank(y) # is NA ignored, and the 2 '2' values called 2 and 3?
+
+ntile(y, 2) # seems like it returns '1' when number in vector is <= 2, but '2' when > 2
+ntile(y, 3)
+```
+I don't quite understand min_rank?
+row_number() doesn't generate ties the way min_rank() does.
+dense_rank() allows ties, but those don't count towards final list of numbers
+percent_rank() sets range, with min at 0 and max at 1.0
+cume_dist() sets range from 0 to 1, and each point as fraction along that range
+
+ntile : Finally, ntile() divides the data up into n evenly sized buckets. It’s a coarse ranking, and it can be used in with mutate() to divide the data into buckets for further summary. 
+ntile() is weird.  seems to be whether 
+
+#### 5.5.2  Exercises
+
+##### 5.5.2.1  Convert dep_time and sched_dep_time to # minutes since midnight
+```{r}
+head(flights)
+flights_minutes <- transmute(flights, 
+                             dep_time_min = dep_time %/% 100 * 60 + dep_time %% 100,
+                            sched_dep_time_min = sched_dep_time %/% 100 * 60 + sched_dep_time %% 100)
+head(flights_minutes)
+head(flights)
+# working out the format
+test <- c(1215, 905, 620)
+(hour <- test %/% 100)
+(min <- test %/% 100 * 60)
+(rem <- test %% 100)
+```
+
+##### 5.5.2.2  Compare air_time with arr_time - dep_time.
+Naively, I'd expect the two to be equal
+```{r}
+flights_2 <- select(flights, 
+   year:day,                 
+  contains("time"),
+  -time_hour
+)
+head(flights_2)
+
+flights_2 <- mutate(flights_2, comp_travel_time = arr_time - dep_time)
+# rearrange for ease of comparison
+
+flights_2 <- arrange(flights_2, air_time, comp_travel_time)
+# seems that the computed travel time is always greater.
+# let's graph that to be sure
+
+flights_2 <- mutate(flights_2, wait_time = comp_travel_time - air_time)
+summary(flights_2)
+
+ggplot(flights_2, aes(comp_travel_time, air_time)) +
+  geom_jitter(aes(alpha = 0.2))
+```
+Hmm, there are two distinct groups.
+Often the differnece between 'air_time' and 'arr_time - dep_time' is small.
+In these cases, computed values always positive (computed = longer than air)
+This may sometimes be time spent on the tarmac.
+
+Sometimes, computed travel time is much less than air_time.  A fault of the time display?
+Try again, with minutes rather than hours for computed times
+
+```{r}
+
+flights_minutes_2 <- transmute(flights, 
+                             arr_time_min = arr_time %/% 100 * 60 + arr_time %% 100,
+                            dep_time_min = sched_dep_time %/% 100 * 60 + dep_time %% 100, 
+                            comp_time_min = arr_time_min - dep_time_min, 
+                            air_time = air_time)
+head(flights_minutes_2)
+ # now look at the difference between computed and reported airtime
+
+flights_minutes_2 <- mutate(flights_minutes_2, wait_time = comp_time_min - air_time)
+# and now plot out
+ggplot(flights_minutes_2, aes(comp_time_min, air_time)) +
+  geom_jitter(aes(alpha = 0.2))
+# still some wonky values, with cmoputed air times much less than reported.
+# 24 hours = how many minutes?
+60*24 # 1440.  Maybe that explains it.  Next day arrival.
+
+ggplot(flights_minutes_2, aes(wait_time, air_time)) +
+  geom_jitter(aes(alpha = 0.2))
+# and some negative values for wait time.  that is hard to understand.
+# Wait, maybe time zone issues? 
+```
+I would need to know the differences between arrival and departure time zones to fix the data
+
+##### 5.5.2.3  Compare dep_time, sched_dep_time, and  dep_delay.  How do you expect them to be related?
+
+I expect dep_time - sched_dep_time == dep_delay.  let's check
+```{r}
+
+flights_3 <- select(flights, 
+   year:day,                 
+  contains("dep")
+)
+head(flights_3)
+
+flights_3 <- mutate(flights_3, 
+                    dep_time_mins = dep_time %/% 100 * 60 + dep_time %% 100, 
+                    sched_dep_time_mins = sched_dep_time %/% 100 * 60 + sched_dep_time %% 100
+                    )
+
+flights_3 <- mutate(flights_3, calc_dep_delay = dep_time_mins - sched_dep_time_mins)
+summary(flights_3)
+# min is -1438; max is 911.  Large negatives meant delay until next day, I would think?
+
+ggplot(flights_3, aes(calc_dep_delay, dep_delay)) +
+  geom_point(aes(alpha = 0.2))
+
+# OK, two linear plots!  The one to the left offset by about 60*24 =   1440 minutes. 
+# so next day departure
+```
+
+##### 5.5.2.4  Find the 10 most delayed flights using a ranking function. How do you want to handle ties? Carefully read the documentation for min_rank()
+
+OK, I want to rank by dep_delay.  "most common ranking is with min_rank"
+That is, tied values are all given the lowest rank
+```{r}
+
+summary(flights) # max dep_delay is  1301.00
+flights_rank <- select(flights, year:day, dep_time, sched_dep_time, dep_delay, carrier, flight)
+head(flights_rank)
+
+flights_rank <- mutate(flights_rank, delay_rank = min_rank(desc(flights$dep_delay)))
+# now order them by that new column
+
+flights_rank <- arrange(flights_rank, delay_rank, carrier, flight)
+head(flights_rank, n = 10)
+# no ties inthe top 10.    
+# HA is Hawaiian Air, MQ is Envoy Air, AA is American, DL is Delta.  
+?flights
+airlines  #DL has 4 of top 10; MQ has 3.  
+```
+
+
+##### 5.5.2.5  What does 1:3 + 1:10 return? Why?
+
+
+```{r}
+#  1:3 + 1:10
+
+```
+Error, because vectors of different lenghts. Try a few others
+```{r}
+1:5 + 1:10  # worked.  vector of length 10.  cycled through 1:5 twice
+
+1:10 + 1:5 # same values as above
+
+1:5 + 2 # that is more intuitive
+
+```
+
+##### 5.5.2.6  What trig functions does R provide?
+
+```{r}
+?Trig
+```
+These functions give the obvious trigonometric functions. They respectively compute the cosine, sine, tangent, arc-cosine, arc-sine, arc-tangent, and the two-argument arc-tangent.
+
+
+
