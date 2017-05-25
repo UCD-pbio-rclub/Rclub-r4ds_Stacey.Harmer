@@ -56,3 +56,9 @@ View(ans.ex)
 
 df <- data.frame(abc = 1)
 df
+
+ggplot(data = mpg) +
+  geom_boxplot(mapping = aes(x = reorder(class, hwy, FUN = median), y = hwy))
+
+ggplot(data = diamonds, mapping = aes(x = price, y = color)) +
+  geom_hex()

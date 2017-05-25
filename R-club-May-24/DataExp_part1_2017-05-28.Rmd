@@ -170,9 +170,11 @@ diamonds_NA2 <- diamonds %>%
   mutate(cut = if_else(runif(n()) < 0.1, NA_character_, as.character(cut)))
 summary(diamonds_NA2)
 str(diamonds_NA2)  # cut is a character, not a factor
+View(diamonds_NA2)
 
 ggplot(diamonds_NA2) +
   geom_bar(mapping = aes(x = cut))
+
 
 ```
 
@@ -630,7 +632,7 @@ I would guess because a binned plot would not show me those outliers (Unless the
 ```{r}
 
 ggplot(data = diamonds, mapping = aes(x = x, y = y)) +
-  geom_boxplot(mapping = aes(group = cut_width(x, .5))) +
+  geom_boxplot(mapping = aes(group = cut_width(x, 2))) +
   coord_cartesian(xlim = c(4, 11), ylim = c(4, 11))
 
 ```
