@@ -1,16 +1,328 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "Ch 11 - Data Import with readr"
+output: 
+  html_document: 
+    keep_md: yes
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
-
-```{r}
-plot(cars)
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+## 11.  Data Import
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file).
+```{r}
+library(tidyverse)
+```
+
+tools: read_csv, read_fwf, and red_log
+
+```{r}
+read_csv("a,b, c
+         1,2,3
+         4,5,6")
+
+#note the lack of commas at line breaks
+# could have used \n instead of line break
+
+read_csv("a,b,c \n1, 2, 3 \n4, 5, 6")
+```
+
+### 11.2.2  Exercises
+
+#### 11.2.2.1  What function would you use to read a file where fields were separated with “|”?
+
+I would use the read_delim() function
+As in:
+```{r}
+read_delim("a|b\n1.0|2.0", delim = "|")
+```
+
+#### 11.2.2.2  Apart from file, skip, and comment, what other arguments do read_csv() and read_tsv() have in common?
+
+```{r}
+?read_csv
+```
+
+col_names, col_types, locale, na, quoted_na, quote (that backslash is default), trim_ws, n_max, guess_max, progress
+
+"quoted_na	
+Should missing values inside quotes be treated as missing values (the default) or strings."
+
+#### 11.2.2.3  What are the most important arguments to read_fwf()?
+
+```{r}
+?read_fwf
+
+# You can specify fields either by their widths with fwf_widths() or their position with fwf_positions().
+```
+For read_fwf(), col_positions are created either by fwf_empty(), fwf_widths(), or fwf_positions().  This seems the key argument.   
+Next in importance may be how na is treated.
+
+```{r}
+fwf_sample <- readr_example("fwf-sample.txt")
+cat(read_lines(fwf_sample))
+
+# first, guess columns based on empty positions
+read_fwf(fwf_sample, fwf_empty(fwf_sample, col_names = c("first", "last", "state", "ssn")))
+
+# Or, specify width of fields
+ read_fwf(fwf_sample, fwf_widths(c(20, 10, 12), c("name", "state", "ssn")))
+ # Or, specify width of fields
+ read_fwf(fwf_sample, fwf_widths(c(20, 20, 20), c("name", "state", "ssn")))
+ # note that everything is offset here
+ 
+ # tell where columns start and stop
+read_fwf(fwf_sample, fwf_positions(c(1, 30), c(10, 42), c("name", "ssn"))) 
+# why does that work?
+
+# next, specify the column positions
+read_fwf(fwf_sample, fwf_cols(name = c(1, 10), ssn = c(30, 42))) 
+# note that names were truncated (to 10 characters)
+
+# column widths
+read_fwf(fwf_sample, fwf_cols(name = 20, state = 10, ssn = 12))
+# that seems easiest to understand
+
+# another example
+
+txt = c('abc\ndef')
+readr::read_fwf(txt, fwf_positions(1, 2))
+# I don't get it.
+
+readr::read_fwf(txt, fwf_positions(start = 1, end = 2))
+
+```
+
+#### 11.2.2.4  Sometimes strings in a CSV file contain commas. To prevent them from causing problems they need to be surrounded by a quoting character, like " or '. By convention, read_csv() assumes that the quoting character will be ", and if you want to change it you’ll need to use read_delim() instead. What arguments do you need to specify to read the following text into a data frame?
+
+"x,y\n1,'a,b'"
+
+```{r}
+ex <- "x,y\n1,'a,b'"
+# I guess this is meant to be 2 rows, with one entry being a,b
+
+read_delim(file = ex, quote = "'", delim = "," )
+
+```
+
+#### 11.2.2.5 Identify what is wrong with each of the following inline CSV files. What happens when you run the code?
+
+```{r}
+read_csv("a,b\n1,2,3\n4,5,6")  
+#first row has 2 columns while others have 3
+
+read_csv("a,b,c\n1,2\n1,2,3,4")
+# first row has 3 columns, 2nd has 2, 3rd has 4
+
+read_csv("a,b\n\"1")
+# the backslash would need to be quoted to fill a cell
+
+read_csv("a,b\n1,2\na,b")
+# no warning.  but note that the columns are characters.  thus 1 and 2 not treated as numeric
+
+read_csv("a;b\n1;3")
+# need to use read_delim and specify delim = ; or use read_csv2
+
+```
+
+## 11.3  Parsing a vector
+
+Different ways to deal with character vectors. 8 of them!
+
+### 11.3.1  parsing numbers
+parse_number is nice - it ignores non-numeric characters.
+locale also key
+
+### 11.3.2  parsing strings
+
+```{r}
+charToRaw("Hadley")
+charToRaw("Stacey")
+```
+readr uses UTF-8 everywhere!
+fine with new stuff, not good with old files
+
+### 11.3.3  parsing factors
+
+parse_factor() uses list of known levels
+
+### 11.3.4  Dates, times
+
+#### 11.3.5  Exercises
+
+##### 11.3.5.1  What are the most important arguments to locale()?
+
+```{r}
+?locale
+# encoding is really important.  but so are date_names and date_format, and decimal_mark
+# and so is time zone! 
+
+```
+
+##### 11.3.5.2  What happens if you try and set decimal_mark and grouping_mark to the same character? 
+
+```{r}
+
+parse_double("1,23", locale = locale(decimal_mark = ","))
+#parse_double("1,23", locale = locale(decimal_mark = "," , grouping_mark = ","))
+ # throws an error
+
+```
+
+What happens to the default value of grouping_mark when you set decimal_mark to “,”? 
+```{r}
+parse_double("1000,23", locale = locale(decimal_mark = ","))
+# I'm going to guess the grouping_mark default would be "."
+
+#  parse_double("1.000,23", locale = locale(decimal_mark = "," ))
+#    THIS FAILED
+parse_number("1.000,23", locale = locale(decimal_mark = "," ))
+# but this ran fine; the '.' interpreted as grouping mark
+
+# remember that double not the same as number!
+# double is strict numeric, while number is flexible
+```
+
+What happens to the default value of decimal_mark when you set the grouping_mark to “.”?
+```{r}
+parse_double("1,23", locale = locale(grouping_mark = "."))
+# yes, default is "," becomes decimal mark
+
+# parse_double("1.000", locale = locale(grouping_mark = "."))  
+# error again
+
+# BUT 
+parse_number("1.000", locale = locale(grouping_mark = "."))  
+# runs fine
+
+# or more succinctly:
+locale(grouping_mark = ".")
+
+```
+
+##### 11.3.5.3  I didn’t discuss the date_format and time_format options to locale(). What do they do? Construct an example that shows when they might be useful.
+
+I could imagine they would be useful in distinguishing months and dates in US vs European data, for example
+
+```{r}
+dates <- c("1-01-70", "12-11-88", "5-06-02") 
+
+parse_date(dates, "%m-%d-%y") # that runs since I gave it format
+
+parse_date(dates, locale=locale(date_format = "%m-%d-%y")) 
+# this would be US method
+
+parse_date(dates, locale=locale(date_format = "%d-%m-%y")) 
+# this would be european.
+# note both methods assumed all years were in 21st century
+
+# Note that if your subjects were born before 1970, for example, the %y won't work well
+```
+
+##### 11.3.5.4  If you live outside the US, create a new locale object that encapsulates the settings for the types of file you read most commonly.
+
+If I lived in Argentina, I might want the following:
+
+locale = locale(decimal_mark = ",", date_names= "es", tz =  "America/Buenos_Aires" )
+
+##### 11.3.5.5  What’s the difference between read_csv() and read_csv2()?
+read_csv is ',' delimited while read_csv2 is ';' delimited
+
+##### 11.3.5.6 What are the most common encodings used in Europe? What are the most common encodings used in Asia? Do some googling to find out.
+
+Europe:  Wikipedia tells me that ISO 8859-1 , ISO 8859-2, ISO 8859-3 and ISO 8859-4 are common in Europe
+But there are many others.
+And it seems like UTF-8 or UTF-16 would be preferred.
+
+Asia:  Japan might use JIS X 0208, China might use GB 2312, Taiwan use Big5, etc.
+But why not use UTF-32?
+
+##### 11.3.5.7  Generate the correct format string to parse each of the following dates and times
+
+```{r}
+d1 <- "January 1, 2010"
+parse_date(d1, "%B %d, %Y", locale = locale("en"))
+
+```
+
+```{r}
+d2 <- "2015-Mar-07"
+parse_date(d2, "%Y-%b-%d", locale = locale("en"))
+```
+
+```{r}
+d3 <- "06-Jun-2017"
+parse_date(d3, "%d-%b-%Y", locale = locale("en"))
+```
+
+```{r}
+d4 <- c("August 19 (2015)", "July 1 (2015)")
+parse_date(d4, "%B %d (%Y)", locale = locale("en"))
+
+```
+
+```{r}
+d5 <- "12/30/14" # Dec 30, 2014
+parse_date(d5, "%m/%d/%y")
+
+```
+
+```{r}
+t1 <- "1705"  # time; I assume this would be 5:05 pm
+parse_time(t1, "%H%M")
+
+```
+
+```{r}
+t2 <- "11:15:10.12 PM"
+parse_time(t2) # default runs OK; skips the extra fraction of second
+# or
+parse_time(t2, "%I:%M:%OS %p") # more complete
+
+```
+
+## 11.4  Parsing a file
+
+```{r}
+challenge <- read_csv(readr_example("challenge.csv"))
+problems(challenge)
+# seems likely first 1000 rows are integers but rest are not
+
+challenge <- read_csv(
+  readr_example("challenge.csv"), 
+  col_types = cols(
+    x = col_double(),
+    y = col_character()
+  )
+)
+#I set x to double
+head(challenge)
+tail(challenge)
+
+# but now I see y should be a date column
+
+challenge <- read_csv(
+  readr_example("challenge.csv"), 
+  col_types = cols(
+    x = col_double(),
+    y = col_date()
+  )
+)
+
+challenge2 <- read_csv(readr_example("challenge.csv"), guess_max = 1001)
+```
+
+```{r}
+challenge2 <- read_csv(readr_example("challenge.csv"), 
+  col_types = cols(.default = col_character())
+)
+challenge2
+
+type_convert(challenge2) # figured it out
+```
+
+Note that write_rds and read_rds are better than the csv functions if you are staying within R. 
+This supports list-columns, but doesn't work with other languages.
+
+feather works with other languages but doesn't support list-columns.
