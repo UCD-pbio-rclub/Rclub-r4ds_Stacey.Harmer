@@ -60,7 +60,7 @@ For read_fwf(), col_positions are created either by fwf_empty(), fwf_widths(), o
 Next in importance may be how na is treated.
 
 ```{r}
-fwf_sample <- readr_example("fwf-sample.txt")
+fwf_sample <- readr_example("fwf-sample.txt") 
 cat(read_lines(fwf_sample))
 
 # first, guess columns based on empty positions

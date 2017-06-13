@@ -1,0 +1,361 @@
+---
+title: "Ch 12 - tidy data, part 1"
+author: "Stacey Harmer"
+date: "6/11/2017"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Sections 12.1 - 12.4
+
+#12 Tidy data
+
+## 12.2.1  Tidy data exercises
+
+### 12.2.1.1 Describe how the variables and observations are organised in each of the sample tables.
+
+Table 1: each column is a variable, and every row is an observation
+Table 2:  one of the columns ('type') is a factor, while the others are variables
+Table 3:  one of hte colums ('rate') has two observations in it
+Table 4:  two tibbles.  'year' is a factor now, and is spread over 2 columns in each tibble.
+
+### 12.2.1.2 Compute the rate for table2, and table4a + table4b. You will need to perform four operations:
+1.  extract # TB cases per country per year, and population # as well
+2.  divide cases by population, then multiply by 10000
+3.  Store in correct locations
+
+```{r}
+library(tidyverse)
+head(table2)
+
+#table2 %>%
+ # group_by(country, year) %>%
+  #mutate(rate = filter(type == "cases")/filter(type == "population") )
+
+kludge <- cbind(table2 %>%
+  group_by(country, year) %>%
+   filter(type == "cases"),
+  table2 %>%
+  group_by(country, year) %>%
+   filter(type == "population"))
+
+kludge %>%
+  transform(country, year, 
+            rate = kludge[, 4]/kludge[, 8] * 10000)
+
+# Ugly, but it works
+
+# better way: make a new tibble from extracted vectors
+table2_cases <-  filter(table2, type == "cases")[, c(1:2,4)]
+table2_pop <- filter(table2, type == "population")[, 4]
+
+table2_new <- bind_cols(table2_cases, table2_pop)
+colnames(table2_new)[3:4] <- c("cases", "population") 
+
+table2_new %>%
+  mutate(rates = cases/population * 10000)
+
+```
+That was a drag.  Now do the same for Table 4
+
+```{r}
+table4a
+
+table4b
+
+(rates <- tibble(rate.1999 = table4a$'1999'/table4b$'1999' *10000,
+                rate.2000 = table4a$'2000'/table4b$'2000' * 10000))
+
+(table.4a.rates <- bind_cols(table4a[1], rates))
+
+#this worked; but more elegant answer on solutions page
+
+tibble(country = table4a[["country"]],
+       '1999' = table4a[['1999']]/ table4b[['1999']] * 10000,
+       '2000' = table4a[['2000']]/ table4b[['2000']] * 10000
+       )
+```
+
+### 12.2.1.3  Recreate the plot showing change in cases over time using table2 instead of table1. What do you need to do first?
+
+```{r}
+library(ggplot2)
+ggplot(table1, aes(year, cases)) + 
+  geom_line(aes(group = country), colour = "grey50") + 
+  geom_point(aes(colour = country))
+
+table2
+
+```
+
+To plot this, I first need to filter out the population data
+
+```{r}
+
+table2 %>%
+  filter(type == "cases") %>%
+ggplot(aes(year, count)) + 
+  geom_line(aes(group = country), colour = "grey50") + 
+  geom_point(aes(colour = country))
+
+```
+That was pretty easy.
+
+## 12.3  Spreading and gathering
+### 12.3.1  Gathering
+makes wide tables longer and narrower
+
+when some column names are values of a variable, not a variable name
+
+```{r}
+
+tidy4a <- table4a %>% 
+  gather(`1999`, `2000`, key = "year", value = "cases")
+
+tidy4b <- table4b %>% 
+  gather(`1999`, `2000`, key = "year", value = "population")
+
+# left join is useful here
+left_join(tidy4a, tidy4b) # smart enough not to duplicate country and year
+
+
+```
+
+### 12.3.2  Spreading
+makes long tables shorter and wider
+
+what is the key column? the one with variable names
+
+```{r}
+spread(table2, key = type, value = count)
+
+```
+
+### 12.3.3  Exercises
+
+#### 12.3.3.1  Why are gather() and spread() not perfectly symmetrical?
+Consider:
+
+```{r}
+
+stocks <- tibble(
+  year   = c(2015, 2015, 2016, 2016),
+  half  = c(   1,    2,     1,    2),
+  return = c(1.88, 0.59, 0.92, 0.17)
+)
+
+stocks %>% 
+  spread(year, return) %>% 
+  gather("year", "return", `2015`:`2016`)
+
+```
+
+the spread function made a wider tibble; colnames now half and 2015 and 2016; 
+these are all numbers (dbl)  (same as original tibble)
+
+Running gather on that - now year is a character.  this seems weird.
+Gather converted the variable name to a character
+
+Try again but with convert = T
+```{r}
+stocks %>% 
+  spread(year, return) %>% 
+  gather("year", "return", `2015`:`2016`, convert = T)
+
+```
+If I do this, year is an integer.
+Help file says:  "if convert = T, will automatically run type.convert on key column"
+type.convert will convert a character vector to logical, numeric, complex, or factor
+
+Not fully symmetrical because column type information is lost!
+
+
+#### 12.3.3.2  Why does this code fail?
+
+```{r}
+#table4a %>% 
+ # gather(1999, 2000, key = "year", value = "cases")
+
+#> Error in combine_vars(vars, ind_list): Position must be between 0 and n
+```
+
+Lack of tick marks, I think.
+
+```{r}
+
+table4a %>% 
+  gather(`1999`, `2000`, key = "year", value = "cases")
+
+```
+
+Yep.
+
+```
+
+#### 12.3.3.3  Why does spreading this tibble fail? How could you add a new column to fix the problem?
+
+```{r}
+people <- tribble(
+  ~name,             ~key,    ~value,
+  #-----------------|--------|------
+  "Phillip Woods",   "age",       45,
+  "Phillip Woods",   "height",   186,
+  "Phillip Woods",   "age",       50,
+  "Jessica Cordero", "age",       37,
+  "Jessica Cordero", "height",   156
+)
+```
+
+I could add a column 'observation' c(1,1,2,1,1)
+
+```{r}
+#  people2 <- right_join(people, c(1,1,2,1,1))
+# this doesn't work
+# cbind?
+people2 <- cbind(people, c(1,1,2,1,1))
+# that works, but messy
+colnames(people2)[4] <- "obs"
+
+people2 <- cbind(people, obs = c(1,1,2,1,1))
+# this also works, and is more concise
+
+spread(people2, key, value)
+
+```
+
+Or, I think if I got rid of one row that would do it also
+
+```{r}
+ # ( although data is lost here)
+people3 <- people[c(1:2, 4:5),]
+
+spread(people3, key = key, value = value )
+
+```
+
+
+#### 12.3.3.4  Tidy the simple tibble below. Do you need to spread or gather it? What are the variables?
+```{r}
+preg <- tribble(
+  ~pregnant, ~male, ~female,
+  "yes",     NA,    10,
+  "no",      20,    12
+)
+# the variables are pregnant, and sex
+# so I need to gather it
+
+gather(preg, male, female, key = "sex", value = "count")
+
+# the help page points out that logical vectorw sould be easier to work with
+
+gather(preg, male, female, key = "sex", value = "count") %>%
+  mutate(pregnant = pregnant == "yes",
+         female = sex == "female") %>%
+  select(-sex)
+
+```
+
+## 12.4  Separating and uniting
+
+### 12.4.1  Separating
+
+```{r}
+library(tidyverse)
+table3
+table3 %>% 
+  separate(rate, into = c("cases", "population"))
+
+```
+Default is to leave column type as is (in this case, characters)
+
+```{r}
+table3 %>% 
+  separate(rate, into = c("cases", "population"),convert = T)
+
+table3 %>% 
+  separate(year, into = c("century", "year"), sep = 2, convert = T)
+
+table3 %>% 
+  separate(year, into = c("century", "year"), sep = 2) %>%
+  separate(rate, into = c("cases", "population"), convert = T)
+```
+
+Nice!
+
+```{r}
+table5
+table5 %>% 
+  unite(new, century, year, sep = "")
+```
+
+
+### 12.4.3  Exercises
+
+#### 12.4.3.1 What do the extra and fill arguments do in separate()? Experiment with the various options for the following two toy datasets.
+
+```{r}
+
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>% 
+  separate(x, c("one", "two", "three"))
+
+# default value for extra is warn; I got a warning telling me that one of my rows had
+# more values than the others
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>% 
+  separate(x, c("one", "two", "three"), extra = "drop")
+# same output, no warning
+
+tibble(x = c("a,b,c", "d,e,f,g", "h,i,j")) %>% 
+  separate(x, c("one", "two", "three"), extra = "merge")
+# no values dropped, instead the 'extra' value left in the last cell of 2nd row
+
+tibble(x = c("a,b,c", "d,e", "f,g,i")) %>% 
+  separate(x, c("one", "two", "three"))
+
+# fill default value is 'warn'.  told me an NA was inserted
+
+tibble(x = c("a,b,c", "d,e", "f,g,i")) %>% 
+  separate(x, c("one", "two", "three"), fill = "right")
+
+tibble(x = c("a,b,c", "d,e", "f,g,i")) %>% 
+  separate(x, c("one", "two", "three"), fill = "left")
+
+# sets where the NA gets inserted.  
+```
+
+#### 12.4.3.2 Both unite() and separate() have a remove argument. What does it do? Why would you set it to FALSE?
+
+The help file tells me that default is remove; this removes the input columns from output df.  Makes sense; usually don't want same information twice. 
+
+Might imagine wanting it to be false if: you want to check the conversion is accurate.  Or if you for some reason both want full value and abbreviated value.
+
+```{r}
+table3 %>% 
+  separate(year, into = c("century", "year"), sep = 2, remove = F)
+
+```
+
+#### 12.4.3.3 Compare and contrast separate() and extract(). Why are there three variations of separation (by position, by separator, and with groups), but only one unite?
+
+Separate with groups?  not sure what that means.  And what is the extract() function?  Does he mean []?
+We were introduced to hte subsetting function in section 10.3.2
+
+
+```{r}
+
+df <- tibble(
+  x = runif(5),
+  y = rnorm(5)
+)
+
+df
+# remember: To use these in a pipe, you’ll need to use the special placeholder .:
+
+df %>% .$x
+
+```
+

@@ -1,0 +1,128 @@
+---
+title: "Gene_expression_data_with_tidyr"
+author: "Stacey Harmer"
+date: "6/6/2017"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+Working examples found at http://varianceexplained.org/r/tidy-genomics/
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+load the data
+```{r}
+library(readr)
+original_data <- read_delim("http://varianceexplained.org/files/Brauer2008_DataSet1.tds", delim = "\t")
+
+View(original_data)
+summary(original_data)
+
+original_data$NAME[1:3]
+```
+
+First, clean up the name information
+
+```{r}
+library(dplyr)
+library(tidyr)
+
+cleaned_data <- original_data %>%
+  separate(NAME, c("name", "BP", "MF", "systematic_name", "number"), sep = "\\|\\|")
+
+head(cleaned_data)
+View(cleaned_data)
+```
+
+Now get rid of extra whitespace
+
+```{r}
+cleaned_data <- original_data %>%
+  separate(NAME, c("name", "BP", "MF", "systematic_name", "number"), sep = "\\|\\|") %>%
+  mutate_each(funs(trimws), name:systematic_name)
+View(cleaned_data)
+
+```
+
+And now drop stuff we don't need
+```{r}
+cleaned_data <- original_data %>%
+  separate(NAME, c("name", "BP", "MF", "systematic_name", "number"), sep = "\\|\\|") %>%
+  mutate_each(funs(trimws), name:systematic_name) %>%
+  select(-number, -GID, -YORF, -GWEIGHT)
+View(cleaned_data)
+```
+
+The data is not tidy; too much inforamtion in each row.
+the gather() function will help here
+
+```{r}
+
+cleaned_data <- original_data %>%
+  separate(NAME, c("name", "BP", "MF", "systematic_name", "number"), sep = "\\|\\|") %>%
+  mutate_each(funs(trimws), name:systematic_name) %>%
+  select(-number, -GID, -YORF, -GWEIGHT) %>%
+  gather(sample, expression, G0.05:U0.3)
+View(cleaned_data)
+
+```
+
+That is really amazing!   Saved a bunch of work with melting.
+
+Finally - need to separate the 2 types of information currently in the 'sample' column
+
+```{r}
+library(tidyverse)
+
+
+cleaned_data <- original_data %>%
+  separate(NAME, c("name", "BP", "MF", "systematic_name", "number"), sep = "\\|\\|") %>%
+  mutate_each(funs(trimws), name:systematic_name) %>%
+  select(-number, -GID, -YORF, -GWEIGHT) %>%
+  gather(sample, expression, G0.05:U0.3) %>%
+  separate(sample, c("nutrient", "rate"), sep = 1, convert = TRUE)
+
+View(cleaned_data)
+```
+
+Now for some plotting
+
+```{r}
+cleaned_data %>%
+  filter(name == "LEU1") %>%
+  ggplot(aes(rate, expression, color = nutrient)) +
+  geom_line()
+```
+
+or more broadly
+
+```{r}
+cleaned_data %>%
+  filter(BP == "leucine biosynthesis") %>%
+  ggplot(aes(rate, expression, color = nutrient)) +
+  geom_line() +
+  facet_wrap(~name)
+
+# fit lines to hte data
+cleaned_data %>%
+  filter(BP == "leucine biosynthesis") %>%
+  ggplot(aes(rate, expression, color = nutrient)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~name)
+
+```
+
+Next up: http://varianceexplained.org/r/tidy-genomics-broom/
+
+Modeling gene epxression 
+
+And then http://varianceexplained.org/r/tidy-genomics-biobroom/
+which 
+use the limma and biobroom packages in combination to continue a tidy analysis, and consider when and how to use non-tidy data in an analysis.
+
+Work through the above before going to:
+https://simplystatistics.org/2016/02/17/non-tidy-data/
