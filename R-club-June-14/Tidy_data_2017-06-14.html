@@ -385,7 +385,6 @@ stocks %&gt;%
 ## 5      Brazil  2000  80488
 ## 6       China  2000 213766</code></pre>
 <p>Yep.</p>
-<p>```</p>
 </div>
 <div id="why-does-spreading-this-tibble-fail-how-could-you-add-a-new-column-to-fix-the-problem" class="section level4">
 <h4>12.3.3.3 Why does spreading this tibble fail? How could you add a new column to fix the problem?</h4>
@@ -424,7 +423,6 @@ spread(people3, key = key, value = value )</code></pre>
 ## *           &lt;chr&gt; &lt;dbl&gt;  &lt;dbl&gt;
 ## 1 Jessica Cordero    37    156
 ## 2   Phillip Woods    45    186</code></pre>
-<p>```</p>
 </div>
 <div id="tidy-the-simple-tibble-below.-do-you-need-to-spread-or-gather-it-what-are-the-variables" class="section level4">
 <h4>12.3.3.4 Tidy the simple tibble below. Do you need to spread or gather it? What are the variables?</h4>
@@ -634,17 +632,17 @@ tibble(x = c(&quot;a,b,c&quot;, &quot;d,e&quot;, &quot;f,g,i&quot;)) %&gt;%
 
 df</code></pre>
 <pre><code>## # A tibble: 5 × 2
-##           x            y
-##       &lt;dbl&gt;        &lt;dbl&gt;
-## 1 0.1550694  0.260395548
-## 2 0.2163179 -0.007569013
-## 3 0.3838550  0.504033438
-## 4 0.3647337  0.738817118
-## 5 0.5304312 -0.464892017</code></pre>
+##            x           y
+##        &lt;dbl&gt;       &lt;dbl&gt;
+## 1 0.94811333  1.70832721
+## 2 0.54044510  0.06206801
+## 3 0.07843643 -0.49778116
+## 4 0.34387560  0.82423453
+## 5 0.59763476  0.60825960</code></pre>
 <pre class="r"><code># remember: To use these in a pipe, you’ll need to use the special placeholder .:
 
 df %&gt;% .$x</code></pre>
-<pre><code>## [1] 0.1550694 0.2163179 0.3838550 0.3647337 0.5304312</code></pre>
+<pre><code>## [1] 0.94811333 0.54044510 0.07843643 0.34387560 0.59763476</code></pre>
 </div>
 </div>
 </div>

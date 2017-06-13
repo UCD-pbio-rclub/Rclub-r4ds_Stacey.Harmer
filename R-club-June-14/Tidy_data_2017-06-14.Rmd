@@ -195,8 +195,6 @@ table4a %>%
 
 Yep.
 
-```
-
 #### 12.3.3.3  Why does spreading this tibble fail? How could you add a new column to fix the problem?
 
 ```{r}
@@ -259,6 +257,7 @@ gather(preg, male, female, key = "sex", value = "count") %>%
   select(-sex)
 
 ```
+
 
 ## 12.4  Separating and uniting
 
