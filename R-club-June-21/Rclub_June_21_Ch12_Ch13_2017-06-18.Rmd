@@ -1,0 +1,328 @@
+---
+title: "Ch 12 - tidy data, part 2; Ch 13 - part 1"
+author: "Stacey Harmer"
+date: "6/18/2017"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Sections 12.5 - 12.7
+
+Sections 13.1 - 13.2
+
+#12 Tidy data
+
+## 12.5 Missing Values
+
+```{r}
+library(tidyverse)
+stocks <- tibble(
+  year   = c(2015, 2015, 2015, 2015, 2016, 2016, 2016),
+  qtr    = c(   1,    2,    3,    4,    2,    3,    4),
+  return = c(1.88, 0.59, 0.35,   NA, 0.92, 0.17, 2.66)
+)
+
+stocks %>% 
+  spread(year, return)
+
+stocks %>% 
+  spread(year, return) %>% 
+  gather(year, return, `2015`:`2016`, na.rm = TRUE)
+
+stocks
+
+stocks %>% 
+  complete(year, qtr) # clever
+```
+
+```{r}
+treatment <- tribble(
+  ~ person,           ~ treatment, ~response,
+  "Derrick Whitmore", 1,           7,
+  NA,                 2,           10,
+  NA,                 3,           9,
+  "Katherine Burke",  1,           4
+)
+
+treatment
+
+treatment %>%
+  fill(person)
+```
+
+### 12.5.1 Exercises
+
+#### 12.5.1.1  Compare and contrast the fill arguments to spread() and complete().
+spread: arguments are data, key (name of column whose values become column headings),
+value (name of column whose values go into cells), fill
+
+fill - default is NA.  if set, missing values replaced with this value.  
+missing value might be explicitly missing (NA) or implicitly missing (absent)
+So I can only have one default value
+
+complete:
+fill is a named list that for each variable supplies single value to use 
+instead of NA
+
+My list should be as long as the number of NAs that I want to replace; I can have different values inserted.
+```{r}
+?complete
+library(dplyr, warn.conflicts = FALSE)
+df <- data_frame(
+  group = c(1:2, 1),
+  item_id = c(1:2, 2),
+  item_name = c("a", "b", "b"),
+  value1 = 1:3,
+  value2 = 4:6
+)
+df %>% complete(group, nesting(item_id, item_name), fill = list(value1 = 0))
+df %>% complete(group, nesting(item_id, item_name), fill = list(value1 = 0, value2 = 5))
+
+```
+
+#### 12.5.1.2  What does the direction argument to fill() do?
+
+direction specifies if the values are to be filled in in the up or down direction
+
+```{r}
+df <- data.frame(Month = 1:12, Year = c(2000, rep(NA, 11)))
+df
+df %>% fill(Year)
+
+# or instead:
+df.2 <- data.frame(Month = 1:12, Year = c(rep(NA, 11), 2000))
+df.2
+df.2 %>% fill(Year) # no fill
+df.2 %>% fill(Year, .direction = "up") # that worked
+
+```
+
+## 12.6 Case study
+
+First, gather columns that are not variables, and fix a key name
+
+```{r}
+who1 <- who %>% 
+  gather(new_sp_m014:newrel_f65, key = "key", value = "cases", na.rm = TRUE)
+who1
+who1 %>%
+  count(key)
+
+who2 <- who1 %>% 
+  mutate(key = stringr::str_replace(key, "newrel", "new_rel"))
+who2
+```
+
+Then, split up the information in the 'key' codes
+
+```{r}
+who3 <- who2 %>% 
+  separate(key, c("new", "type", "sexage"), sep = "_")
+who3
+
+```
+
+now drop redundant columns
+
+```{r}
+who4 <- who3 %>% 
+  select(-new, -iso2, -iso3)
+who4
+
+```
+
+And now split the sex and age info
+
+```{r}
+who5 <- who4 %>% 
+  separate(sexage, c("sex", "age"), sep = 1)
+who5
+```
+
+Or, more elegantly:
+```{r}
+who %>%
+  gather(code, value, new_sp_m014:newrel_f65, na.rm = TRUE) %>% 
+  mutate(code = stringr::str_replace(code, "newrel", "new_rel")) %>%
+  separate(code, c("new", "var", "sexage")) %>% 
+  select(-new, -iso2, -iso3) %>% 
+  separate(sexage, c("sex", "age"), sep = 1)
+```
+
+### 12.6.1 Exercises
+
+#### 12.6.1.1 In this case study I set na.rm = TRUE just to make it easier to check that we had the correct values. Is this reasonable? Think about how missing values are represented in this dataset. Are there implicit missing values? What’s the difference between and NA and a 0?
+
+There is a big differnece between NA and 0 here!  0 suggests a measurement was made, while NA suggests not data are avialble so no conclusions can be made
+
+Are there implicit missing values?  Let's summarize by coutnry and year:
+
+```{r}
+who5 %>% 
+  group_by(country, year) %>%
+  nrow()  # group by didn't seem to work
+
+who5 %>% 
+  group_by(country, year) %>%
+  count() # that works, but 3,500 rows too many to look at
+
+  # this tells me my method not sound
+
+# ask Julin for his example using 'complete'
+
+# below is from the answer key page
+
+gather(who, new_sp_m014:newrel_f65, key = "key", value = "cases") %>%
+  group_by(country, year)  %>%
+  mutate(missing = is.na(cases)) %>%
+  select(country, year, missing) %>%
+  distinct() %>%
+  group_by(country, year) %>%
+  filter(n() > 1)  # here, we are selecting for countries and years with more than one NA
+
+# output is empty; so no cases in which some types of data reported but not other types in one country in one year
+```
+
+#### 12.6.1.2 What happens if you neglect the mutate() step? (mutate(key = stringr::str_replace(key, "newrel", "new_rel")))
+
+In that step, we fixed a code name that lacked an underscore
+
+```{r}
+# as given:
+who %>%
+  gather(code, value, new_sp_m014:newrel_f65, na.rm = TRUE) %>% 
+  mutate(code = stringr::str_replace(code, "newrel", "new_rel")) %>%
+  separate(code, c("new", "var", "sexage")) %>% 
+  select(-new, -iso2, -iso3) %>% 
+  separate(sexage, c("sex", "age"), sep = 1)
+
+# leave out mutate
+#who %>%
+ # gather(code, value, new_sp_m014:newrel_f65, na.rm = TRUE) %>% 
+  #separate(code, c("new", "var", "sexage")) %>% 
+#  select(-new, -iso2, -iso3) %>% 
+#  separate(sexage, c("sex", "age"), sep = 1)
+# throws an error, because missing some values
+```
+
+#### 12.6.1.3 I claimed that iso2 and iso3 were redundant with country. Confirm this claim.
+
+Can I use distinct?
+
+```{r}
+df <- data.frame(
+  x = sample(10, 100, rep = TRUE),
+  y = sample(10, 100, rep = TRUE)
+)
+df
+nrow(df)
+nrow(distinct(df))
+nrow(distinct(df, x, y))
+
+who %>%
+  select(country:iso3) %>%
+  nrow()
+# 7240 rows
+
+who %>%
+  select(country:iso3) %>%
+  distinct() %>%
+  nrow()
+#219 distinct rows
+
+
+who %>%
+  select(country) %>%
+  distinct() %>%
+  nrow()
+#219 distinct rows, again.  So iso2 = iso3 = country
+
+```
+
+#### 12.6.1.4 For each country, year, and sex compute the total number of cases of TB. Make an informative visualisation of the data.
+
+```{r}
+
+who.tidy <- who %>%
+  gather(code, value, new_sp_m014:newrel_f65, na.rm = TRUE) %>% 
+  mutate(code = stringr::str_replace(code, "newrel", "new_rel")) %>%
+  separate(code, c("new", "var", "sexage")) %>% 
+  select(-new, -iso2, -iso3) %>% 
+  separate(sexage, c("sex", "age"), sep = 1)
+
+who.tidy %>%
+  group_by(country, year, sex) %>% 
+  summarize(total.cases = sum(value)) %>%  # about 7k rows of data
+  ggplot(aes(x = year, y = total.cases)) +
+  geom_line(aes(group = country, color = sex))
+
+#messy!  
+
+who.tidy %>%
+  group_by(country, year, sex) %>% 
+  summarize(total.cases = sum(value)) %>%  # about 7k rows of data
+  ggplot(aes(x = year, y = total.cases)) +
+  geom_line(aes(group = country, color = country)) +
+  theme(legend.position="none")
+
+# still yucky
+
+
+```
+
+
+#13 Relational data
+
+## 13.2 nycflights 13
+
+```{r}
+library(tidyverse)
+library(nycflights13)
+airlines # 16 listed
+airports #1,458
+tail(airports)
+planes #3,322 numbers
+weather #26,130 rows
+tail(weather) # thes are for NYC airports
+
+```
+
+### 13.2.1 Exercises
+
+#### 13.2.1.1 Imagine you wanted to draw (approximately) the route each plane flies from its origin to its destination. What variables would you need? What tables would you need to combine?
+
+I'd need to know the origin, the destination, and any stops along the way.  Lat and lon would give me map locations.  So from 
+
+airports - need faa, lat, lon
+flights - need origin, dest 
+
+actually, I think these are all direct so no need to worry about stops
+
+#### 13.2.1.2 I forgot to draw the relationship between weather and airports. What is the relationship and how should it appear in the diagram?
+
+```{r}
+weather
+airports
+
+```
+
+weather gives us a bunch of information for each airport at each time
+I could use both dataframes to determine weather conditions for lat and lon at each time point
+
+Draw line between 'faa' in flights and 'origin' in weather
+
+#### 13.2.1.3  weather only contains information for the origin (NYC) airports. If it contained weather records for all airports in the USA, what additional relation would it define with flights?
+
+we could determine weather conditions at the time the flights landed at their destination
+
+#### 13.2.1.4 We know that some days of the year are “special”, and fewer people than usual fly on them. How might you represent that data as a data frame? What would be the primary keys of that table? How would it connect to the existing tables?
+
+We could make a table with columns year, month, days of the year and hte next column a logical for holiday.
+
+We'd connect it to flights via the year,month,day columns
+

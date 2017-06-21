@@ -239,17 +239,17 @@ spread(people3, key = key, value = value )
 
 #### 12.3.3.4  Tidy the simple tibble below. Do you need to spread or gather it? What are the variables?
 ```{r}
-preg <- tribble(
+(preg <- tribble(
   ~pregnant, ~male, ~female,
   "yes",     NA,    10,
   "no",      20,    12
-)
+))
 # the variables are pregnant, and sex
 # so I need to gather it
 
 gather(preg, male, female, key = "sex", value = "count")
 
-# the help page points out that logical vectorw sould be easier to work with
+# the help page points out that logical vectors could be easier to work with
 
 gather(preg, male, female, key = "sex", value = "count") %>%
   mutate(pregnant = pregnant == "yes",
@@ -356,5 +356,13 @@ df
 
 df %>% .$x
 
+df <- data.frame(x = c(NA, "a-b", "a-d", "b-c", "d-e"))
+df %>% extract(x, "A")
+
+df %>% extract(x, c("A", "B"), "([[:alnum:]]+)-([[:alnum:]]+)")
+
+df %>% extract(x, c("A"), "([[:alnum:]]+ - [[:alnum:]]+)")
+
+df %>% extract(x, c("A", "B"), "([a-d]+)-([a-d]+)")
 ```
 
