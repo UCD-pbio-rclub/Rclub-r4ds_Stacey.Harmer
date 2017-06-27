@@ -1,0 +1,273 @@
+---
+title: "Rclub_June28_Ch13"
+author: "Stacey Harmer"
+date: "6/26/2017"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+Finish chapter 13 (Relational data) 13.3 - 13.7
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 13.3  Keys
+
+Primary key - uniquely identifies observation in its own table
+
+Foreign key - 
+
+```{r}
+library(tidyverse)
+library(nycflights13)
+
+planes # tailnum is primary key; everything else relates back to it
+length(planes$tailnum) # 3322
+length(unique(planes$tailnum)) # 3322
+flights # tailnum is foreign; 
+length(flights$tailnum) # 336776
+length(unique(flights$tailnum)) # 4044
+```
+
+I should get used to using count instead
+
+```{r}
+planes %>% 
+  count(tailnum) %>% 
+  filter(n > 1)  # none
+
+flights %>% 
+  count(tailnum) %>% 
+  filter(n > 1)  # 3,873 × 2
+
+weather %>% 
+  count(year, month, day, hour, origin) %>% 
+  filter(n > 1) # also none
+
+
+```
+
+YOu can add a primary key using 'mutate' and row_number  (this is a surrogate key)
+
+### 13.3.1 Exercises
+
+#### 13.3.1.1  Add a surrogate key to flights.
+
+```{r}
+flights.new.key <- flights %>%
+  mutate(sur.key = row_number())
+
+str(flights.new.key)
+summary(flights.new.key)
+```
+
+#### 13.3.1.2  Identify the keys in the following datasets
+
+```{r}
+?Lahman::Batting
+head(Lahman::Batting)
+```
+
+I'd guess playerID is primary key
+```{r}
+
+Lahman::Batting %>% 
+  count(playerID, yearID, stint) %>% 
+  filter(n > 1)  # that is unique
+
+Lahman::Batting %>% 
+  count(playerID, yearID, teamID) %>% 
+  filter(n > 1)  # not unique
+
+```
+
+```{r}
+library(babynames)
+head(babynames)
+
+# I'm guessing year, sex, name must all be combined to be unique
+#babynames %>%
+#  count(year, name) %>%
+#  filter(n > 1)
+
+#babynames %>%
+#  count(year, name, sex) %>%
+#  dplyr::filter(n > 1)  ## error, not sure why.
+
+```
+
+
+```{r}
+library(nasaweather)
+head(atmos)
+
+atmos %>%
+  count(lat, long, year, month) %>%
+  filter(n > 1) # that is now unique
+
+```
+
+```{r}
+library(fueleconomy)
+head(vehicles)
+
+vehicles %>%
+  count(id) %>%
+  filter(n > 1)  # finally!  A key variable
+
+```
+
+```{r}
+head(diamonds)
+
+diamonds %>%
+  count(carat, cut, color) %>%
+  filter( n > 1) # not unique
+
+diamonds %>%
+  count(carat, cut, color, clarity) %>%
+  filter( n > 1)
+
+diamonds %>%
+  count(carat, cut, color, clarity, depth, table, price) %>%
+  filter( n > 1) # still have 735 rows.  
+
+diamonds %>%
+  count(carat, cut, color, clarity, depth, table, price, x , y , z) %>%
+  filter( n > 1)  # still have 143 rows.
+## WHY???????
+
+diamonds %>%
+  filter(carat == 0.30, 
+         cut == "Good", 
+         color == "J", 
+         clarity == "VS1", 
+         depth == 63.4, 
+         table == 57) 
+
+# These entries look hte same to me.  Nots sure whey they are listed twice
+diamonds # A tibble: 53,940 × 10
+unique(diamonds) # 53,794 × 10
+
+```
+
+#### 13.3.1.4 Draw a diagram illustrating the connections between the Batting, Master, and Salaries tables in the Lahman package. Draw another diagram that shows the relationship between Master, Managers, AwardsManagers.
+
+```{r}
+library(Lahman)
+head(Batting)  # playerID, yearID, stint, teamID, lgID  then a bunch of stats for the player
+head(Master)  # info on each player.  Primary key is playerID.  easy to relate to Batting
+head(Managers)  # can get teamID and year here; relate back to Batting to see who the manager was.  Possible complication: can have multilple managers per year; if so, might be hard to figure out how 'stint' in Batting relates to managers
+head(Salaries) # can related playerID and year and team to performance in the Batting tibble.
+
+```
+
+How would you characterise the relationship between the Batting, Pitching, and Fielding tables?
+
+```{r}
+?Pitching #  44139 observations 
+?Batting  # 101332 observations - more people bat than pitch
+?Fielding # 170526 observations - more people field than bat (?)
+```
+
+These are parallel tibbles I think.  
+
+## 13.4  Mutating joins
+
+TO combine variables from 2 tables.
+
+```{r}
+flights2 <- flights %>% 
+  select(year:day, hour, origin, dest, tailnum, carrier)
+flights2
+
+```
+
+Now add full airline name to the above
+```{r}
+head(airlines)
+
+flights2 %>%
+  select(-origin, -dest) %>% 
+  left_join(airlines, by = "carrier")
+
+```
+
+### 13.4.1  Understanding joins
+
+### 13.4.2 Inner join.  
+
+Note that the output will only be the rows that match each other - danger!!
+
+### 13.4.3 Outer join.  
+
+Specify what is to be retained.  left_join keeps all in hte first table (x); right_join keeps all in teh second table (y); full_join keeps all observations in both tables.
+
+Left join is default join!!!
+
+### 13.4.4 Duplicate keys.
+
+What happens when keys are not unique??  
+
+1.the joining key is primary in one table but not in the other.  The information in the non-primary key is duplicated.
+
+```{r}
+x <- tribble(
+  ~key, ~val_x,
+     1, "x1",
+     2, "x2",
+     2, "x3",
+     1, "x4"
+)
+y <- tribble(
+  ~key, ~val_y,
+     1, "y1",
+     2, "y2"
+)
+left_join(x, y, by = "key")
+
+```
+
+2.  Both tables have duplicate keys.  Problem!
+
+### 13.4.5 Defininig the key columns
+
+```{r}
+head(flights2)
+head(weather)
+
+flights %>%
+  left_join(weather)
+```
+
+Natural join just uses all the column names that match between the tables
+
+### 13.4.6 Exercises
+
+### 13.4.6.1  Compute the average delay by destination, then join on the airports data frame so you can show the spatial distribution of delays.  
+
+I assume this means average arrival delay (?)
+
+```{r}
+head(flights) # dest has the faa code for destination
+head(airports)  # faa is the airport code
+
+flights %>%
+  group_by(dest) %>%
+  summarize(avg.arr.del = mean(arr_delay, na.rm = T)) %>%
+  right_join(airports, c("dest" = "faa")) %>%
+  filter(avg.arr.del != "NA")
+# gives a tibble with 101 rows.
+```
+
+
+
+Here’s an easy way to draw a map of the United States:
+
+
+
+
+
+
