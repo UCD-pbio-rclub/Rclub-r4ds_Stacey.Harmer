@@ -88,13 +88,13 @@ library(babynames)
 head(babynames)
 
 # I'm guessing year, sex, name must all be combined to be unique
-#babynames %>%
-#  count(year, name) %>%
-#  filter(n > 1)
+babynames %>%
+  count(year, name) %>%
+  filter(nn > 1)  #163,000 rows!
 
-#babynames %>%
-#  count(year, name, sex) %>%
-#  dplyr::filter(n > 1)  ## error, not sure why.
+babynames %>%
+ count(year, name, sex) %>%
+ filter(nn > 1)  ## that did it
 
 ```
 
@@ -157,7 +157,7 @@ unique(diamonds) # 53,794 × 10
 
 ```{r}
 library(Lahman)
-head(Batting)  # playerID, yearID, stint, teamID, lgID  then a bunch of stats for the player
+head(Batting)  # playerID, yearID, stint, are the primary keys; then a bunch of stats for the player
 head(Master)  # info on each player.  Primary key is playerID.  easy to relate to Batting
 head(Managers)  # can get teamID and year here; relate back to Batting to see who the manager was.  Possible complication: can have multilple managers per year; if so, might be hard to figure out how 'stint' in Batting relates to managers
 head(Salaries) # can related playerID and year and team to performance in the Batting tibble.
@@ -254,20 +254,462 @@ I assume this means average arrival delay (?)
 head(flights) # dest has the faa code for destination
 head(airports)  # faa is the airport code
 
-flights %>%
+avg.delays <- flights %>%
   group_by(dest) %>%
   summarize(avg.arr.del = mean(arr_delay, na.rm = T)) %>%
   right_join(airports, c("dest" = "faa")) %>%
   filter(avg.arr.del != "NA")
+
+avg.delays
 # gives a tibble with 101 rows.
 ```
 
+Now put this data onto the US map
+
+```{r}
+
+airports %>%
+  semi_join(flights, c("faa" = "dest"))
+# this didn't do what I expected
+
+avg.delays %>%
+  ggplot(aes(lon, lat, size = avg.arr.del)) +
+    borders("state") +
+    geom_point() +
+    coord_quickmap()
+
+avg.delays %>%
+  ggplot(aes(lon, lat, color = avg.arr.del)) +
+    borders("state") +
+    geom_point() +
+    coord_quickmap() # better
+
+avg.delays %>%
+  ggplot(aes(lon, lat, color = avg.arr.del)) +
+    borders("state") +
+    geom_point() +
+    coord_quickmap() +
+    scale_colour_gradient(low = "blue", high = "red")
+
+```
+
+### 13.4.6.2 Add the location of the origin and destination (i.e. the lat and lon) to flights.
+
+This would be an left join
+```{r}
+head(flights)
+head(airports)
+
+flights %>%
+  left_join(airports, by = c("origin" = "faa")) %>%
+  left_join(airports, by = c("dest" = "faa"))
+
+#works, but very messy.
+```
+
+### 13.4.6.3 Is there a relationship between the age of a plane and its delays?
+
+To address this, I will join flights with planes
+
+```{r}
+head(flights)
+head(planes)
+
+flights.age <- 
+  flights %>%
+  left_join(planes, by = "tailnum")
+
+cor.test(flights.age$arr_delay, flights.age$year.y)
+# cor is 0.01767153; nope, not much correlation
+
+ggplot(flights.age, aes(x = year.y, y = arr_delay)) +
+  geom_hex()
+
+```
+
+The one striking correlation is that htere are more delays as the years go on.
+
+BElow is code from answer key
+```{r}
+plane_ages <- 
+  planes %>%
+  mutate(age = 2017 - year) %>%
+  select(tailnum, age)
+
+flights %>%
+  inner_join(plane_ages, by = "tailnum") %>%
+  group_by(age) %>%
+  filter(!is.na(dep_delay)) %>%
+  summarise(delay = mean(dep_delay)) %>%
+  ggplot(aes(x = age, y = delay)) +
+  geom_point() +
+  geom_line()
+
+```
+
+### 13.4.6.4  What weather conditions make it more likely to see a delay?
+
+```{r}
+head(weather)
+head(flights)
+
+# I am just going to consider dep_delay for this one
+
+flights %>%
+  left_join(weather, by = c("origin", "year", "month", "day", "hour")) %>%
+  select(c(year:dep_delay, temp:visib, hour)) %>%
+  group_by(hour) %>%
+  summarize(delay = mean(dep_delay, na.rm = T), temp = mean(temp, na.rm = T)) %>%
+  ggplot(aes(x = temp, y = delay)) +
+  geom_point()
+
+# there seems to be a correlation!  Is this just time of day?
+
+flights %>%
+  left_join(weather, by = c("origin", "year", "month", "day", "hour")) %>%
+  select(c(year:dep_delay, temp:visib, hour)) %>%
+  group_by(hour) %>%
+  summarize(delay = mean(dep_delay, na.rm = T), temp = mean(temp, na.rm = T)) %>%
+  ggplot(aes(x = temp, y = hour)) +
+  geom_point()
+
+flights %>%
+  left_join(weather, by = c("origin", "year", "month", "day", "hour")) %>%
+  select(c(year:dep_delay, temp:visib, hour)) %>%
+  group_by(hour) %>%
+  summarize(delay = mean(dep_delay, na.rm = T), temp = mean(temp, na.rm = T)) %>%
+  ggplot(aes(x = hour, y = delay)) +
+  geom_point()  # for sure a correlation here (dep hour and delay)
 
 
-Here’s an easy way to draw a map of the United States:
+flights %>%
+  left_join(weather, by = c("origin", "year", "month", "day", "hour")) %>%
+  select(c(year:dep_delay, temp:visib, hour)) %>%
+  group_by(hour) %>%
+  summarize(delay = mean(dep_delay, na.rm = T), visib = mean(visib, na.rm = T)) %>%
+  ggplot(aes(x = visib, y = delay)) +
+  geom_point() # looks like visib is related to temp
 
 
+flights %>%
+  left_join(weather, by = c("origin", "year", "month", "day", "hour")) %>%
+  select(c(year:dep_delay, temp:visib, hour)) %>%
+  group_by(hour) %>%
+  summarize(delay = mean(dep_delay, na.rm = T), visib = mean(visib, na.rm = T),
+            temp = mean(temp, na.rm = T)) %>%
+  ggplot(aes(x = visib, y = temp)) +
+  geom_point()  #these seem correlated
+
+# wind
+
+flights %>%
+  left_join(weather, by = c("origin", "year", "month", "day", "hour")) %>%
+  select(c(year:dep_delay, temp:visib, hour)) %>%
+  group_by(hour) %>%
+  summarize(delay = mean(dep_delay, na.rm = T), visib = mean(visib, na.rm = T),
+            temp = mean(temp, na.rm = T), wind = mean(wind_speed, na.rm = T)) %>%
+  ggplot(aes(x = wind, y = delay)) +
+  geom_point()  #these seem correlated also - maybe best yet
+
+# gusts
+flights %>%
+  left_join(weather, by = c("origin", "year", "month", "day", "hour")) %>%
+  select(c(year:dep_delay, temp:visib, hour)) %>%
+  group_by(hour) %>%
+  summarize(delay = mean(dep_delay, na.rm = T), visib = mean(visib, na.rm = T),
+            temp = mean(temp, na.rm = T), wind.gust = mean(wind_gust, na.rm = T)) %>%
+  ggplot(aes(x = wind.gust, y = delay)) +
+  geom_point()  # similar to above
+
+# time of day component with wind?
+flights %>%
+  left_join(weather, by = c("origin", "year", "month", "day", "hour")) %>%
+  select(c(year:dep_delay, temp:visib, hour)) %>%
+  group_by(hour) %>%
+  summarize(delay = mean(dep_delay, na.rm = T), visib = mean(visib, na.rm = T),
+            temp = mean(temp, na.rm = T), wind.gust = mean(wind_gust, na.rm = T)) %>%
+  ggplot(aes(x = hour, y = wind.gust)) +
+  geom_point()  # yes, these are correlated too.
 
 
+# rain
 
+flights %>%
+  left_join(weather, by = c("origin", "year", "month", "day", "hour")) %>%
+  select(c(year:dep_delay, temp:visib, hour)) %>%
+  group_by(hour) %>%
+  summarize(delay = mean(dep_delay, na.rm = T), visib = mean(visib, na.rm = T),
+            temp = mean(temp, na.rm = T), precip = mean(precip, na.rm = T)) %>%
+  ggplot(aes(x = precip, y = delay)) +
+  geom_point()  # not a great correlation here
+```
+
+Looks to me like time of day matters a lot, as does wind speed, wind gusts, and maybe visibility
+However, weather is correlated with time of day, so hard to say which matter most.
+
+### 13.4.6.5  What happened on June 13 2013? Display the spatial pattern of delays, and then use Google to cross-reference with the weather.
+
+First, need to figure out delays on this day (by origin and by hour)
+```{r}
+
+# Want to first filter flights so I have only that day
+
+flights.June13.2013 <- flights %>%
+  filter(year == 2013, month == 6, day == 13) %>%
+# group by origin and by hour
+  group_by(origin, hour) %>% # and now calculate mean departure delays
+  summarize(delay = mean(dep_delay, na.rm = T)) %>%
+  left_join(airports, by = c("origin" = "faa"))
+  
+
+flights.June13.2013 %>%
+  ggplot(aes(lon, lat, color = delay)) +
+    borders(database = "state", region = c("new york")) +
+    geom_point() +
+    scale_colour_gradient(low = "blue", high = "red") +
+    coord_quickmap() # better, but I'd like to just see the city.
+
+# not a great display
+```
+
+Google says: An unusually strong non-tropical low pressure for June affected the Northeast on June 13-14, 2013, following tropical storm Andrea and another low pressure earlier in the same week that brought Central Park to near record June rainfall. While impacts from this storm were less significant than originally expected, it managed to produce another 1-3 inches of rain in the Northeast and a widespread severe weather outbreak in the Mid Atlantic region.
+
+The answer key suggested the following (looking at arrivals at dest!):
+
+```{r}
+library(viridis)
+flights %>%
+  filter(year == 2013, month == 6, day == 13) %>%
+  group_by(dest) %>%
+  summarise(delay = mean(arr_delay, na.rm = TRUE)) %>%
+  inner_join(airports, by = c("dest" = "faa")) %>%
+  ggplot(aes(y = lat, x = lon, size = delay, colour = delay)) +
+  borders("state") +
+  geom_point() +
+  coord_quickmap() + 
+  scale_color_viridis()
+
+# OK, that is better than mine
+```
+
+Might have been interesting to plot departure delay by time across the day
+
+```{r}
+flights.June13.2013  %>%
+  ggplot(aes(x = hour, y = delay)) +
+  geom_point() + 
+  facet_grid( origin ~ .)
+```
+
+A bad day to travel
+
+## 13.5 Filtering joins
+
+These affect the obsevations, not the variables
+```{r}
+top_dest <- flights %>%
+  count(dest, sort = TRUE) %>%
+  head(10)
+top_dest
+
+```
+semi-join keeps ony the rows in x that have a match in y
+
+```{r}
+flights %>% 
+  semi_join(top_dest)
+
+flights %>% 
+  semi_join(top_dest) %>%
+  distinct(dest) # indeed, only 10 airports
+```
+
+I don't really understand this well
+
+```{r}
+x <- tribble(
+  ~key, ~val_x, ~gt,
+     1, "x1", "Col",
+     2, "x2", "Ler",
+     3, "x3", "Col"
+)
+x
+y <- tribble(
+  ~key, ~val_y, ~gt,
+     1, "y1", "Col",
+     2, "y2", "Col",
+     4, "y3", "WS"
+)
+y
+semi_join(x, y)
+
+```
+
+
+### 13.5.1 Exercises
+
+#### 13.5.1.1  What does it mean for a flight to have a missing tailnum? What do the tail numbers that don’t have a matching record in planes have in common? (Hint: one variable explains ~90% of the problems.)
+
+```{r}
+summary(planes) # all planes in the tibble have a tailnumber, so he must be asking about the join between the flights and the planes tibbles
+
+summary(flights) # there is a tailnum for every entry, so the issue is that some of the tailnum in flights are not present in the planes tibble
+
+flights %>%
+  anti_join(planes, by = "tailnum") %>%
+  select(time_hour, origin, dest, carrier) %>%
+  distinct(carrier)
+# 10 carriers
+
+flights %>%
+  anti_join(planes, by = "tailnum") %>%  # 52,606 flights without recognized tailnum
+  select(time_hour, origin, dest, carrier) %>%
+  count(carrier, sort = T)
+
+flights %>%
+  count(carrier, sort = T)
+# I can see that few MQ flights have a recognized tailnum in the planes tibble
+# AA isn't much beter
+(25397 + 22558) /52606  # = 0.911588
+
+```
+
+#### 13.5.1.2  Filter flights to only show flights with planes that have flown at least 100 flights.
+
+I guess this means only show flights where the total # of flights with specific tailnum is over 100
+
+```{r}
+
+freq.flyers <- flights %>%
+  count(tailnum, sort = TRUE) %>%
+  filter(n > 100)
+
+summary(freq.flyers) # seems fine
+
+flights %>%
+  semi_join(freq.flyers)
+
+```
+
+#### 13.5.1.3  Combine fueleconomy::vehicles and fueleconomy::common to find only the records for the most common models.
+
+```{r}
+library(fueleconomy)
+head(vehicles) #33,442 rows
+head(common) #347 common models
+
+vehicles %>%
+  semi_join(common, by = c( "make","model") ) #14,531 rows
+
+```
+
+#### 13.5.1.4  Find the 48 hours (over the course of the whole year) that have the worst delays. Cross-reference it with the weather data. Can you see any patterns?
+
+The weather data is only for LGA, JFK, and EWR, so I guess the rlevant delays are dep_delay
+
+How can I select for 48 hour windows?  I could calculate mean delay for each year, month,day, hour and then somehow do a sliding window over 48 rows.
+
+"If you need rolling aggregates (i.e. a sum computed over a rolling window), try the RcppRoll package.""
+```{r}
+library(RcppRoll) # roll_mean looks useful
+
+# First, calculate mean delay for each hour
+
+mean.delays <- flights %>%
+  group_by(year, month, day, hour) %>%
+summarize(mean_delay = mean(dep_delay, na.rm = T))
+
+mean.delays #6,936 rows
+summary(mean.delays)
+
+rolling_means <- mean.delays %>%
+  ungroup() %>%
+  mutate(rolling_mean_48 = roll_mean(mean_delay, n = 48, na.rm = T, fill = NA, align = "right"))
+
+summary(rolling_means)
+
+rolling_means %>%
+  filter(rolling_mean_48 == max(rolling_mean_48, na.rm = T))
+```
+
+OK!  2013, June 28.  Google doesn't reveal much on that date.
+
+Now crosss-reference with the weather data
+
+```{r}
+weather %>%
+  semi_join(
+    rolling_means %>%
+  filter(rolling_mean_48 == max(rolling_mean_48, na.rm = T))
+  )
+# no obvious problems on that day. Expand to a few days around it
+
+View(weather %>%
+  filter(year == 2013, month == 6, day == 25:28))
+```
+The weather still seems fine.
+
+#### 13.5.1.5  What does anti_join(flights, airports, by = c("dest" = "faa")) tell you? What does anti_join(airports, flights, by = c("faa" = "dest")) tell you?
+
+```{r}
+head(flights)
+head(airports)
+
+anti_join(flights, airports, by = c("dest" = "faa"))
+# these would be flights going to airports not in the airports tibble
+
+anti_join(airports, flights, by = c("faa" = "dest"))
+# these are airports listed in the airports tibble but that aren't visited by flights listed in flight tibble.
+
+```
+
+#### 13.5.1.6  You might expect that there’s an implicit relationship between plane and airline, because each plane is flown by a single airline. Confirm or reject this hypothesis using the tools you’ve learned above.
+
+```{r}
+head(airlines) # list of carrier names
+head(planes) # tailnum is listed
+head(flights) # tailnum and carrier is listed.
+
+# So I think the question is whether the same tailnum is always linked with the same carrier in the flights tibble
+
+# I think I want to merge flights with itself using tailnum as the key, and then compare carrier.x with carrier.y.  Inner join?
+
+not.matched <- inner_join(flights, flights, by = "tailnum") %>%  # generates a very long table, with 37 columns and 63,032,928 rows
+  filter(carrier.x != carrier.y)
+
+# the full code returns tibble that is  4,318,330 × 37 - much too big
+
+# let's hone in on what is of interest
+not.matched %>%
+  filter(tailnum != "NA") %>%
+  select(tailnum, carrier.x, carrier.y) %>%
+  distinct()  # this gives me 34 rows
+
+# how many planes?
+not.matched %>%
+  filter(tailnum != "NA") %>%
+  select(tailnum) %>%
+  distinct()  # 17 tailnum
+
+
+View(not.matched %>%
+  filter(tailnum != "NA") %>%
+  select(tailnum, carrier.x, carrier.y) %>%
+  distinct()  )
+
+```
+
+I see same tailnum shared by FL (AirTran) and DL (Delta), by 9E (Endeavor) and EV (ExpressJet)
+Googling tells me AirTran was acquired by Sowthwest in 2014, and in 2013 Endeavor became a subsidiary of Delta.
+
+The answer key is more elegant:
+```{r}
+flights %>%
+  group_by(tailnum, carrier) %>%
+  count() %>%
+  filter(n() > 1) %>%
+  select(tailnum) %>%
+  distinct()  # 18 tailnumbers
+
+```
 
