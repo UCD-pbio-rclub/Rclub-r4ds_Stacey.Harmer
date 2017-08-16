@@ -240,11 +240,11 @@ Can I generalize using info from this chapter?
 vec <- c("A", "B", "C")
 len <- length(vec)
 
-str_c(
-  if (len = 1) "vec",
-  if (len > 1) " and HAPPY BIRTHDAY",
-  "."
-)
+#str_c(
+#  if (len = 1) "vec",
+#  if (len > 1) " and HAPPY BIRTHDAY",
+#  "."
+#  )
 
 vec <- c("A")
 len <- length(vec)
@@ -319,10 +319,9 @@ or  ^.*$
 # RegexOne Practice Problems
 https://regexone.com/problem/matching_decimal_numbers
 
-
 ### 1.   -?\d+,?\.?\d+\.?e?\d+$
 
-    ^-?\d+(,\d+)*(\.\d+(e\d+)?)?$
+        ^-?\d+(,\d+)*(\.\d+(e\d+)?)?$
 is suggested by answer key
 
 ### 2.  \(?1?\s?(\d{3})\)?-?\s?\d{3}-?\s?\d{4}
@@ -419,6 +418,10 @@ str_view(fruit, "(..)\\1", match = T)
 y <- c("aa1aaaabcd", "qwerty")
 #  str_view(y, "(.)\1\1") # why doesn't this work?
 str_view(y, "aaa") # that worked
+
+y <- c("aa1aaaabcd", "qwerty")
+#  str_view(y, "(.)\\1\\1") # why doesn't this work?
+str_view(y, "(.)\\1\\1") # that worked
 ```
 
 2.  "(.)(.)\\2\\1"
@@ -434,20 +437,18 @@ str_view(y,  "(.)(.)\\2\\1") # that worked as expected
 A string of any 4 letters? (answer key: any pair of chracters, twice)
 ```{r}
 y <- c("aaaaaabcd", "qwerty")
-str_view(y, "(..)\1")  # nope; should have worked, though
 
-y <- c("a1a1a1bcd", "qwerty")
-#  str_view(y, (..)\1) 
+str_view(y, "(..)\\1") 
 
 ```
 
 4.  "(.).\\1.\\1"
-should be something like a.aa (character, anything, character twice more)
+should be something like a.aa (character, anything, character, twice more)
 
 ```{r}
 y <- c("babbaboo", "qwerty")
 str_view(y, "(.).\\1.\\1")
-# missed the dot in there
+# missed the extra dot in there
 
 y <- c("babbbaboo", "qwerty" ,"babLbaboo")
 str_view(y, "(.).\\1.\\1")
@@ -467,7 +468,7 @@ str_view(y, "(.)(.)(.).*\\3\\2\\1")
 
 ## 14.3.5.2  construct regular expressions to match words that:
 
-1.  start and end with the same letter
+1.  start and end with the same character
 
 ```{r}
 z <- c("madam", "solitude", "solas", "session")
@@ -499,7 +500,6 @@ z <- c("mississippi", "horror", "abstractitive")
 str_view(z, "(.).*\\1.*\\1")
 
 ```
-
 
 ## [OPTIONAL] The beginner crosswords at https://regexcrossword.com/  (See https://regexcrossword.com/howtoplay for how to play)
 

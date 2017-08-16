@@ -1,0 +1,466 @@
+---
+title: "2017-08-16_functions.Rmd"
+author: "Stacey Harmer"
+date: "8/16/2017"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Chapter 19.1 through 19.4, including the exercises. OK to skip 19.3.1 problems
+
+# 19.2
+
+```{r}
+df <- tibble::tibble(
+  a = rnorm(10),
+  b = rnorm(10),
+  c = rnorm(10),
+  d = rnorm(10)
+)
+
+df$a <- (df$a - min(df$a, na.rm = TRUE)) / 
+  (max(df$a, na.rm = TRUE) - min(df$a, na.rm = TRUE))
+df$b <- (df$b - min(df$b, na.rm = TRUE)) / 
+  (max(df$b, na.rm = TRUE) - min(df$a, na.rm = TRUE))
+df$c <- (df$c - min(df$c, na.rm = TRUE)) / 
+  (max(df$c, na.rm = TRUE) - min(df$c, na.rm = TRUE))
+df$d <- (df$d - min(df$d, na.rm = TRUE)) / 
+  (max(df$d, na.rm = TRUE) - min(df$d, na.rm = TRUE))
+```
+
+ what does range do?
+ 
+ 
+```{r}
+df$a
+range(df$a) # min and max
+
+rescale01 <- function(x) {
+  rng <- range(x, na.rm = TRUE)
+  (x - rng[1]) / (rng[2] - rng[1])
+}
+
+# can I use this with a tibble?
+df <- tibble::tibble(
+  a = rnorm(10),
+  b = rnorm(10),
+  c = rnorm(10),
+  d = rnorm(10)
+)
+
+df <- rescale01(df)
+# YES!  except that it appears to have scaled across all the columns
+```
+
+# Excercises 19.2.1
+
+## 1 Why is TRUE not a parameter to rescale01()? What would happen if x contained a single missing value, and na.rm was FALSE?
+
+I think it would throw an error
+
+```{r}
+x <- c(5,1,-1, 0, NA, 25)
+rescale01(x) # runs fine with original function ()
+
+rescale01 <- function(x) {
+  rng <- range(x, na.rm = F)
+  (x - rng[1]) / (rng[2] - rng[1])
+}
+
+rescale01(x)  # now all are NA
+
+```
+That makes sense, because if one is unknown kind of by definiation all will be unknown.
+
+## 2 In the second variant of rescale01(), infinite values are left unchanged. Rewrite rescale01() so that -Inf is mapped to 0, and Inf is mapped to 1.
+
+don't I need to use an if then statement?
+
+```{r}
+# original
+rescale01 <- function(x) {
+  rng <- range(x, na.rm = TRUE, finite = TRUE)
+  (x - rng[1]) / (rng[2] - rng[1])
+}
+
+x <- c(0, -15, Inf, -Inf, 15)
+rescale01(x) # Ok, as expected
+
+# new
+#rescale01.Inf <- function(x) {
+#  rng <- range(x, na.rm = TRUE, -Inf = 0, Inf = 1)
+#  (x - rng[1]) / (rng[2] - rng[1])
+#}
+# that failed
+
+rescale01.Inf <- function(x) {
+  rng <- range(x, na.rm = TRUE, finite = TRUE)
+  y <- (x - rng[1]) / (rng[2] - rng[1])
+  y[y == Inf] <- 1
+  y[y == -Inf] <- 0
+  y
+}
+x
+rescale01.Inf(x)  # success
+
+```
+
+##3 Practice turning the following code snippets into functions. Think about what each function does. What would you call it? How many arguments does it need? Can you rewrite it to be more expressive or less duplicative?
+
+```{r}
+
+x <- c(0, -15, NA, -2, 15)
+mean(is.na(x)) # gives the fraction of entries that are NA
+
+frac.na <- function(x){
+  mean(is.na(x))
+}  # don't see how to make it more compact
+frac.na(x) 
+
+
+x / sum(x, na.rm = TRUE)
+# this returns normalized values
+norm.x <- function(x){
+  sum <- sum(x, na.rm = TRUE)
+  x/sum
+}
+norm.x(x)  # seems fine
+
+
+sd(x, na.rm = TRUE) / mean(x, na.rm = TRUE)
+# this is the coeff of variation
+
+covar.x <- function(x){
+  sd.x <- sd(x, na.rm = TRUE)
+  mean.x <- mean(x, na.rm = TRUE)
+  sd.x/mean.x
+}
+
+covar.x(x)
+
+```
+
+##4 Follow http://nicercode.github.io/intro/writing-functions.html to write your own functions to compute the variance and skew of a numeric vector.
+
+Variance example is given on that web page
+```{r}
+# sample variance: 1/(n-1) * sum (x - mean.x)2
+
+n <- length(x) # number of items in vector
+
+# difference between x values and mean of x
+m <- mean(x,na.rm = TRUE)
+x - m
+sum((x-m)^2, na.rm = TRUE)
+
+variance.x <- function(x){
+  n <- length(x)
+  m <- mean(x, na.rm = TRUE)
+  (1/(n-1))* sum((x-m)^2, na.rm = TRUE)
+}
+
+variance.x(x)
+var(x, na.rm = TRUE) # don't match; probably because of NA not being omitted from length
+
+x <- c(0, 5, 15, 22, -5)
+# yes, that is correct
+
+# answer page has more elegant way to deal with NA:
+
+variance <- function(x) {
+  # remove missing values
+  x <- x[!is.na(x)]
+  n <- length(x)
+  m <- mean(x)
+  sq_err <- (x - m) ^ 2
+  sum(sq_err) / (n - 1)
+}
+```
+
+Now, write a function to define skew
+
+```{r}
+
+
+skewness <- function(x) {
+    n <- length(x)
+    v <- var(x)
+    m <- mean(x)
+    third.moment <- (1/(n - 2)) * sum((x - m)^3)
+    third.moment/(var(x)^(3/2))
+}
+
+skewness(x) # that doesn't seem right to me
+
+# and from the answer page:
+skewness <- function(x) {
+  x <- x[!is.na(x)] 
+  n <- length(x)
+  m <- mean(x)
+  m3 <- sum((x - m) ^ 3) / n
+  s3 <- sqrt(sum((x - m) ^ 2) / (n - 1))
+  m3 / s3
+}
+skewness(rgamma(10, 1, 1)) # doesn't seem right either (why is s3 transformed by sqrt instead of by ^(3/2)?)
+
+```
+
+##5 Write both_na(), a function that takes two vectors of the same length and returns the number of positions that have an NA in both vectors.
+
+That seems difficult.  STart by doing this for one vector
+```{r}
+y <- c(0, -5, NA, NA, 10, 22)
+length(y)
+Z <- c(0, NA, NA, 5, 5) # Vector of T and F.  I want 
+ZZ <- c(5, 5, NA, NA, 10)  # I want to return info on T and T in same position in both vectors
+
+Z & ZZ # look for overlap between these vectors
+sum(Z & ZZ)
+
+both_na <- function (x, y){
+  x.na <- is.na(x)
+  y.na <- is.na(y)
+  sum(x.na & y.na)
+}
+
+both_na(Z, ZZ)
+
+```
+
+##6 What do the following functions do? Why are they useful even though they are so short?
+
+```{r}
+
+is_directory <- function(x) file.info(x)$isdir
+# output is going to be brief; likely could use this very often.
+# tells you if the file is a directory or not
+
+is_readable <- function(x) file.access(x, 4) == 0
+# as above, but tells you if file can be read
+```
+
+##7 Read the complete lyrics to “Little Bunny Foo Foo”. There’s a lot of duplication in this song. Extend the initial piping example to recreate the complete song, and use functions to reduce the duplication.
+
+Little bunny Foo Foo
+Went hopping through the forest
+Scooping up the field mice
+And bopping them on the head
+
+Down came the Good Fairy, and she said
+"Little bunny Foo Foo
+I don't want to see you
+Scooping up the field mice
+And bopping them on the head."
+I'll give you three chances,
+And if you don't behave, I will turn you into a goon!"
+And the next day...
+
+The verses repeat subtracting each chance by one until the final verse which the fairy said
+
+"I gave you three chances and you didn't behave so....
+POOF. She turned him into a Goon."
+
+Pipe example
+
+library(tidyverse)
+# first verse
+foo.action <- function(){
+  foo_foo %>%
+  hop(through = forest) %>%
+  scoop(up = field_mouse) %>%
+  bop(on = head)
+}
+
+
+# second verse
+fairy.says <- function(){
+  good_fairy %>%
+  says(who = foo_foo) %>%
+  wants(see != foo_foo) %>%
+  scoop(up = field_mouse) %>%
+  bop(on = head)
+}
+
+fairy.threat <- function(n){
+  good_fairy %>%
+    gives(chances = n)
+  if(behave = FALSE)
+    then "turn_into_goon"
+  else
+    foo_foo
+}
+
+
+Something like that
+
+# 19.3  Functions are for humans and computers
+
+# 19.4  Conditional execution (if/else statements!)
+
+Example
+```{r}
+has_name <- function(x) {
+  nms <- names(x)
+  if (is.null(nms)) {
+    rep(FALSE, length(x))
+  } else {
+    !is.na(nms) & nms != ""
+  }
+}
+z <- c(1:3)
+names(z)
+## assign just one name
+names(z)[2:3] <- c("b","")
+
+has_name(z)
+
+```
+
+## 19.4.2 Multiple Conditions
+
+Can use if, else if, and else chained together. 
+Or  the switch() function.
+
+I would have benefitted from some examples here
+
+
+
+## 19.4.4 Exercises
+
+## 1 What’s the difference between if and ifelse()? Carefully read the help and construct three examples that illustrate the key differences.
+
+?'if'
+If condition is vector of length > 1, only hte first element is used. 
+
+Examples
+```{r}
+for(i in 1:5) print(1:i)
+
+for(n in c(2,5,10,20,50)) {
+   x <- stats::rnorm(n)
+   cat(n, ": ", sum(x^2), "\n", sep = "")
+}
+
+f <- factor(sample(letters[1:5], 10, replace = TRUE))
+
+for(i in unique(f)) print(i)
+
+```
+
+I guess we can think of it as an operation that is repeated until the input is exhausted (so will repeat same operation multiple times)
+
+ifelse - you have a choice of operations
+
+examples
+```{r}
+x <- c(6:-4)
+sqrt(x)  #- gives warning
+sqrt(ifelse(x >= 0, x, NA))  # no warning
+# this means: if x >= 0, get sqrt (put x into function).  otherwise, return NA
+
+## Note: the following also gives the warning !
+ifelse(x >= 0, sqrt(x), NA)
+
+
+## ifelse() strips attributes
+## This is important when working with Dates and factors
+x <- seq(as.Date("2000-02-29"), as.Date("2004-10-04"), by = "1 month")
+## has many "yyyy-mm-29", but a few "yyyy-03-01" in the non-leap years
+
+y <- ifelse(as.POSIXlt(x)$mday == 29, x, NA)
+head(y) # not what you expected ... ==> need restore the class attribute:
+class(y) <- class(x)
+y
+
+```
+
+## 2 Write a greeting function that says “good morning”, “good afternoon”, or “good evening”, depending on the time of day. (Hint: use a time argument that defaults to lubridate::now(). That will make it easier to test your function.)
+
+Not easy for those of us that skipped lubridate
+
+```{r}
+
+greet <- function(time = lubridate::now()) {
+  hr <- hour(time)
+  # I don't know what to do about times after midnight, 
+  # are they evening or morning?
+  if (hr < 12) {
+    print("good morning")
+  } else if (hr < 17) {
+    print("good afternoon")
+  } else {
+    print("good evening")
+  }
+} 
+
+library(lubridate)
+now("EST")
+now("PST")
+now("GH")
+now("UTC")
+now("UTC+13:00")
+
+OlsonNames() 
+
+now("US/Pacific")
+```
+
+## 3 Implement a fizzbuzz function. It takes a single number as input. If the number is divisible by three, it returns “fizz”. If it’s divisible by five it returns “buzz”. If it’s divisible by three and five, it returns “fizzbuzz”. Otherwise, it returns the number. Make sure you first write working code before you create the function.
+
+```{r}
+101 %/% 5
+101 %% 5  # that is what I want;
+
+# divisible by 3:
+9 %% 3  # gives 0
+
+x <- 15
+
+# if (x %% 3 == 0) & (x %% 5 == 0) {  ### why isn't this equivalent to example from help page?
+#  print("fizzbuzz")
+#} else if (x %% 3 == 0) {
+#  print("fizz")
+#} else if (x %% 5 == 0) {
+#  print("buzz")
+#} else {
+#  x 
+# }
+
+# this prints all 4 evaulations - why?
+
+
+
+## why does !(x %% 3)  evalute as TRUE ?
+!(16 %% 3) # F
+!(9 %% 3) # T
+
+# from help page:
+fizzbuzz <- function(x) {
+  stopifnot(length(x) == 1)
+  stopifnot(is.numeric(x))
+  # this could be made more efficient by minimizing the
+  # number of tests
+  if (!(x %% 3) & !(x %% 5)) {
+    print("fizzbuzz")
+  } else if (!(x %% 3)) {
+    print("fizz")
+  } else if (!(x %% 5)) {
+    print("buzz")
+  }
+}
+fizzbuzz(6)
+#> [1] "fizz"
+fizzbuzz(10)
+#> [1] "buzz"
+fizzbuzz(15)
+#> [1] "fizzbuzz"
+fizzbuzz(2)
+
+```
+
+
+
