@@ -72,7 +72,6 @@ rescale01 <- function(x) {
 }
 
 rescale01(x)  # now all are NA
-
 ```
 That makes sense, because if one is unknown kind of by definiation all will be unknown.
 
@@ -104,8 +103,14 @@ rescale01.Inf <- function(x) {
   y[y == -Inf] <- 0
   y
 }
+
 x
 rescale01.Inf(x)  # success
+
+#other ways?  Kazu used ifelse
+# but note he shoudl have run range first, and then the coercion
+
+
 
 ```
 
@@ -120,7 +125,6 @@ frac.na <- function(x){
   mean(is.na(x))
 }  # don't see how to make it more compact
 frac.na(x) 
-
 
 x / sum(x, na.rm = TRUE)
 # this returns normalized values
@@ -327,8 +331,6 @@ Or  the switch() function.
 
 I would have benefitted from some examples here
 
-
-
 ## 19.4.4 Exercises
 
 ## 1 What’s the difference between if and ifelse()? Carefully read the help and construct three examples that illustrate the key differences.
@@ -376,6 +378,10 @@ head(y) # not what you expected ... ==> need restore the class attribute:
 class(y) <- class(x)
 y
 
+# Julin
+x <- 1:10
+if (x < 5) "small" else "big"
+ifelse (x < 5, "small", "big") 
 ```
 
 ## 2 Write a greeting function that says “good morning”, “good afternoon”, or “good evening”, depending on the time of day. (Hint: use a time argument that defaults to lubridate::now(). That will make it easier to test your function.)
@@ -432,11 +438,39 @@ x <- 15
 
 # this prints all 4 evaulations - why?
 
+x <- 15
+if ((x %% 3 == 0) & (x %% 5 == 0)) {  
+ print("fizzbuzz")
+} else if (x %% 3 == 0) {
+ print("fizz")
+} else if (x %% 5 == 0) {
+  print("buzz")
+} else {
+  x
+ }
+
+# that worked!
+x <- 12
+if ((x %% 3 == 0) & (x %% 5 == 0)) {  
+ print("fizzbuzz")
+} else if (x %% 3 == 0) {
+ print("fizz")
+} else if (x %% 5 == 0) {
+  print("buzz")
+} else {
+  x
+ }
+
+# but note the above is not a function
 
 
 ## why does !(x %% 3)  evalute as TRUE ?
 !(16 %% 3) # F
 !(9 %% 3) # T
+
+!0 # 
+!1 # not 0, so T!
+!5  # anything not = 0 is true!  
 
 # from help page:
 fizzbuzz <- function(x) {
@@ -459,6 +493,65 @@ fizzbuzz(10)
 fizzbuzz(15)
 #> [1] "fizzbuzz"
 fizzbuzz(2)
+
+```
+
+## 4 How could you use cut() to simplify this set of nested if-else statements?
+
+```{r}
+
+temp.rating <- function(x) {
+  temp <- x
+  if (temp <= 0) {
+    "freezing"
+  } else if (temp <= 10) {
+    "cold"
+  } else if (temp <= 20) {
+    "cool"
+  } else if (temp <= 30) {
+    "warm"
+  } else {
+    "hot"
+  }
+}
+
+temp.rating(15)
+temp.rating(-2)
+temp.rating(33)
+```
+
+OK, simplify with cut.  Will divide range into 5 intervals.
+
+```{r}
+# specify boundaries
+bound <- c(-Inf, 0, 10, 20, 30, Inf)
+nms <- c(-2, 5, 12, 18, 20, 21, 33)
+cats = c("freezing", "cold", "cool", "warm", "hot")
+cut(nms, breaks = bound, labels = cats)
+# note that 20 was interpreted as cool, 21 as warm
+
+# but need to put this into a function still
+
+```
+
+Is that what was desired?
+
+## 5 What happens if you use switch() with numeric values?
+
+I didn't understand the example given in the book.
+
+JUlin:
+1st argument is waht you evaluate
+the rest is what you want it to return
+
+a series of if else statements, but more rigid
+
+
+how to knit with an error in the code
+  chunk:  {r, error = TRUE} in 
+
+```{r}
+
 
 ```
 

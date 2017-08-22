@@ -1,0 +1,439 @@
+---
+title: "2017-08-23_functions.Rmd"
+author: "Stacey Harmer"
+date: "8/21/2017"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Assigment: 
+Rest of Chapter 19 (19.5 - 19.7)
+Chatpter 20.1 - 20.3 including exercises 20.3.5
+
+how to knit with an error in the code
+  chunk:  {r, error = TRUE} in the header
+
+## 19.5
+```{r}
+mean_ci <- function(x, conf = 0.95) {
+  se <- sd(x) / sqrt(length(x))
+  alpha <- 1 - conf
+  mean(x) + se * qnorm(c(alpha / 2, 1 - alpha / 2))
+}
+
+x <- runif(100)
+mean_ci(x)
+#> [1] 0.498 0.610
+mean_ci(x, conf = 0.99)
+#> [1] 0.480 0.628
+
+```
+
+note that commonly, n = number of rows and p = number of columns
+
+### 19.5.2
+
+```{r, error = TRUE}
+library(tidyverse)
+library(stringr)
+
+wt_mean <- function(x, w) {
+  if (length(x) != length(w)) {
+    stop("`x` and `w` must be the same length", call. = FALSE)
+  }
+  sum(w * x) / sum(w)
+}
+
+wt_mean(1:8, 2:9) # ok
+wt_mean(1:4, 2:9) # Ok
+
+# or instead
+
+wt_mean <- function(x, w, na.rm = FALSE) {
+  stopifnot(is.logical(na.rm), length(na.rm) == 1)
+  stopifnot(length(x) == length(w))
+  
+  if (na.rm) {
+    miss <- is.na(x) | is.na(w)
+    x <- x[!miss]
+    w <- w[!miss]
+  }   # I don't follow this part
+  sum(w * x) / sum(w)
+}
+wt_mean(1:6, 6:1, na.rm = "foo")
+#> Error: is.logical(na.rm) is not TRUE
+wt_mean(1:6, 6:1)
+
+wt_mean <- function(x, w, na.rm = FALSE) {
+  stopifnot(is.logical(na.rm), length(na.rm) == 1)
+  stopifnot(length(x) == length(w))
+
+  sum(w * x) / sum(w)
+}
+wt_mean(1:6, 6:1)
+
+```
+
+### 19.5.3
+
+```{r}
+
+commas <- function(...) stringr::str_c(..., collapse = ", ")
+commas(letters[1:10])
+#> [1] "a, b, c, d, e, f, g, h, i, j"
+
+rule <- function(..., pad = "-") {
+  title <- paste0(...)
+  width <- getOption("width") - nchar(title) - 5
+  cat(title, " ", stringr::str_dup(pad, width), "\n", sep = "")
+}
+rule("Important output")
+#> Important output ------------------------------------------------------
+
+```
+
+### 19.5.5 Exercises
+
+### 1. What does commas(letters, collapse = "-") do? Why?
+```{r, error = TRUE}
+commas(letters[1:10], collapse = "-")
+
+# Error in stringr::str_c(..., collapse = ", ") : 
+```
+This generates an error.
+
+```{r, error = TRUE}
+stringr::str_c(letters[1:10], collapse = ", ") # this does not generate an error
+
+stringr::str_c(letters[1:10], collapse = "-")  # nor does this
+
+commas <- function(...) stringr::str_c(..., collapse = ", ")
+commas(letters[1:10]) # no error
+
+commas(letters[1:10], collapse = ", ") # error
+```
+
+Why is it differnet when collapse called within a function vs outside of it?
+Because when runnign the function, it thinks collapse ", " should itself be collapsed.
+(interprets is as part of  . . . )
+
+### 2 It’d be nice if you could supply multiple characters to the pad argument, e.g. rule("Title", pad = "-+"). Why doesn’t this currently work? How could you fix it?
+
+```{r}
+# this works
+rule <- function(..., pad = "-") {
+  title <- paste0(...)
+  width <- getOption("width") - nchar(title) - 5
+  cat(title, " ", stringr::str_dup(pad, width), "\n", sep = "")
+}
+rule("Important output")
+
+rule <- function(..., pad = "-+") {
+  title <- paste0(...)
+  width <- getOption("width") - nchar(title) - 5
+  cat(title, " ", stringr::str_dup(pad, width), "\n", sep = "")
+}
+rule("Important output")  # this kind of works, but it is 2x too long
+
+ # so halve the width
+rule <- function(..., pad = "-+") {
+  title <- paste0(...)
+  width <- getOption("width")/2 - nchar(title) - 5
+  cat(title, " ", stringr::str_dup(pad, width), "\n", sep = "")
+}
+rule("Important output") 
+
+# or more generally
+rule <- function(..., pad = "-!-") {
+  title <- paste0(...)
+  width <- getOption("width")/nchar(pad) - nchar(title) - 5
+  cat(title, " ", stringr::str_dup(pad, width), "\n", sep = "")
+}
+rule("Important output") 
+ 
+
+```
+
+### 3 What does the trim argument to mean() do? When might you use it?
+
+I wondered about this
+```{r}
+?mean
+```
+
+trim is the fraction (0 to 0.5 ) of observations to be trimmed frm each end of x before mean is computed.  
+I might use if I thought my data had outliers that should be removed.
+
+### 4 The default value for the method argument to cor() is c("pearson", "kendall", "spearman"). What does that mean? What value is used by default?
+
+These are different correlation methods. Help suggests pearson is default for cor()
+
+```{r}
+cor(c(1:10, 55, 77), c(2:11, 150, 999), method = "pearson") # 0.8779594
+cor(c(1:10, 55, 77), c(2:11, 150, 999), method = "kendall") # 1
+cor(c(1:10, 55, 77), c(2:11, 150, 999), method = "spearman")  # 1
+cor(c(1:10, 55, 77), c(2:11, 150, 999)) # 0.8779594
+
+```
+So yes, Pearson is default method for cor()
+
+## 19.6 
+
+Use of return within function can be useful
+
+```{r}
+complicated_function <- function(x, y, z) {
+  if (length(x) == 0 || length(y) == 0) {
+    return(0)
+  }
+    
+  # Complicated code here
+}
+#### WHAT does the || mean here?
+
+x <- numeric(0) # empty vector
+y <- c(11:20)
+length(x) == 0 || length(y) == 0  # true
+length(x) == 0 | length(y) == 0  # also true
+```
+
+pipeable functions
+
+```{r}
+show_missings <- function(df) {
+  n <- sum(is.na(df))
+  cat("Missing values: ", n, "\n", sep = "")
+  
+  invisible(df)
+}
+show_missings(mtcars)
+
+x <- show_missings(mtcars) 
+#> Missing values: 0
+class(x)
+#> [1] "data.frame"
+dim(x)
+
+mtcars %>% 
+  show_missings() %>% 
+  mutate(mpg = ifelse(mpg < 20, NA, mpg)) %>% 
+  show_missings()
+
+```
+
+That is clever
+
+## 19.7  Environments
+
+# 20.  Vectors
+```{r}
+
+library(tidyverse)
+
+```
+
+## 20.2  VEctor basics
+
+Null typically behaves like a vector of length 0
+what are complex and raw atomic vectors? He later says they are rarely used during data analysis
+```{r}
+y <- NULL
+y
+length(y) == 0
+```
+
+## 20.3  types of atomic vectors 
+Logical:  T, F, and NA
+
+Numeric: doubles (default) or integers.  
+note that doubles are approximations
+
+```{r}
+x <- sqrt(2) ^ 2
+x
+x - 2
+
+x <- sqrt(2L) ^ 2L
+x
+x - 2  # WHY isn't this now exactly 0??
+x == 2 # FALSE
+
+
+x <- 2
+x == 2 # TRUE (?)
+x - 2 #0.  huh
+x - 2 == 0 # TRUE
+# I'm confused by the above
+```
+
+Integers can be NA; doubles can be NA, NaN, Inf, or -Inf
+
+Remember functions is.finite(), is.infinite(), and is.nan
+
+```{r}
+
+is.infinite(-Inf) # TRUE
+
+```
+
+### 20.3.5  Exercises
+
+### 1 Describe the difference between is.finite(x) and !is.infinite(x).
+
+```{r}
+x <- Inf
+
+is.finite(x) # FALSE
+!is.infinite(x) # FALSE
+
+x <- c(Inf, 4, 5, 22, -Inf, NA)
+is.finite(x) # NA listed as not finite
+!is.infinite(x) # NA classified as not infinite
+
+```
+
+### 2 Read the source code for dplyr::near() (Hint: to see the source code, drop the ()). How does it work?
+
+```{r}
+dplyr::near
+
+```
+function (x, y, tol = .Machine$double.eps^0.5) 
+{
+    abs(x - y) < tol
+}
+<environment: namespace:dplyr>
+
+It takes the squareroot of something called .Machine$double.eps
+```{r}
+?.Machine
+```
+
+double.eps	
+the smallest positive floating-point number x
+
+And if the absolute value of x -y is less than this, it calls a TRUE
+
+### 3 A logical vector can take 3 possible values. How many possible values can an integer vector take? How many possible values can a double take? Use google to do some research.
+
+Logical:  T, F, NA
+
+help files tell me:
+integers:
+Note that current implementations of R use 32-bit integers for integer vectors, so the range of representable integers is restricted to about +/-2*10^9: doubles can hold much larger integers exactly.
+So that is about 2 billion integers
+
+double:
+All R platforms are required to work with values conforming to the IEC 60559 (also known as IEEE 754) standard. This basically works with a precision of 53 bits, and represents to that precision a range of absolute values from about 2e-308 to 2e+308
+
+But that doesn't tell me the number of possible values. 
+
+another google tells me "On a typical R platform the smallest positive double is about 5e-324"
+
+Wikipedia search on double-precision floating-point format
+Double has from 15 to 17 significant decimal digits.  
+
+I wasn't able to really answer this correctly.
+
+### 4  Brainstorm at least four functions that allow you to convert a double to an integer. How do they differ? Be precise.
+
+```{r}
+
+# FIRST function
+x <- 3
+typeof(x) # double
+x <- as.integer(x)
+typeof(x) # integer
+
+x <- c(3, 5, 11)
+typeof(x) # double
+
+make.int <- function(x){
+  as.integer(x)
+}
+
+typeof(make.int(x))
+```
+
+
+And then some failed attempts:
+
+```{r}
+# SECOND function
+x <- c(3, 5, 11)
+typeof(x) # double
+typeof(paste(x, "L", sep ="")) # character.  dang it, doesn't work
+
+```
+
+```{r}
+# rounding?
+
+x <- 3.9
+typeof(x)
+x <- ceiling(x)
+typeof(x) # double, not integer
+
+typeof(round(x)) # still double, but it seems like it should work
+round(x, digits = 0)
+y <- round(x, digits = 0)
+typeof(y) # double.  weird
+
+```
+
+### 5 What functions from the readr package allow you to turn a string into logical, integer, and double vector?
+
+```{r}
+# some examples from the readr help page
+
+mtcars <- read_csv(readr_example("mtcars.csv"))
+summary(mtcars)
+# but what if I want to specify what is what?
+
+mtcars <- read_csv(readr_example("mtcars.csv"), col_types = 
+  cols(
+    mpg = col_integer(),
+    cyl = col_integer(),
+    disp = col_double(),
+    hp = col_integer(),
+    drat = col_double(),
+    vs = col_integer(), 
+    wt = col_double(),  
+    qsec = col_double(),
+    am = col_integer(),
+    gear = col_integer(),
+    carb = col_integer()
+  )
+)
+# didn't like that
+summary(mtcars)
+
+?col_logical
+
+```
+
+col_logical()
+
+col_integer()
+
+col_double()
+
+col_character()
+These functions prase the values as they are read in
+
+The parse_logical, etc, functions deal with a character vector
+
+```{r}
+mtcars <- read_csv(readr_example("mtcars.csv"))
+typeof(mtcars$mpg) # double
+
+typeof(parse_integer(mtcars$mpg)) # integer
+
+```
+
+

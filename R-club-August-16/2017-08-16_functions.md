@@ -35,8 +35,8 @@ df$a
 ```
 
 ```
-##  [1] 0.0000000 0.7462391 0.2430509 0.6414131 0.4188020 0.4796104 1.0000000
-##  [8] 0.6796547 0.3559449 0.4862195
+##  [1] 0.9838368 0.2235610 0.0000000 0.9479528 0.5611857 1.0000000 0.6518306
+##  [8] 0.6960362 0.5665432 0.8662567
 ```
 
 ```r
@@ -310,7 +310,7 @@ skewness(rgamma(10, 1, 1)) # doesn't seem right either (why is s3 transformed by
 ```
 
 ```
-## [1] 1.392365
+## [1] 0.3654644
 ```
 
 ##5 Write both_na(), a function that takes two vectors of the same length and returns the number of positions that have an NA in both vectors.
@@ -497,11 +497,11 @@ for(n in c(2,5,10,20,50)) {
 ```
 
 ```
-## 2: 1.505389
-## 5: 0.4508815
-## 10: 15.67254
-## 20: 20.61228
-## 50: 44.55424
+## 2: 3.655515
+## 5: 4.088132
+## 10: 9.190294
+## 20: 21.49232
+## 50: 35.45378
 ```
 
 ```r
@@ -511,10 +511,10 @@ for(i in unique(f)) print(i)
 ```
 
 ```
-## [1] "b"
+## [1] "c"
 ## [1] "e"
 ## [1] "a"
-## [1] "d"
+## [1] "b"
 ```
 
 I guess we can think of it as an operation that is repeated until the input is exhausted (so will repeat same operation multiple times)
@@ -634,7 +634,7 @@ now("EST")
 ```
 
 ```
-## [1] "2017-08-16 17:40:33 EST"
+## [1] "2017-08-16 17:45:06 EST"
 ```
 
 ```r
@@ -646,7 +646,7 @@ now("PST")
 ```
 
 ```
-## [1] "2017-08-16 22:40:33 GMT"
+## [1] "2017-08-16 22:45:06 GMT"
 ```
 
 ```r
@@ -658,7 +658,7 @@ now("GH")
 ```
 
 ```
-## [1] "2017-08-16 22:40:33 GMT"
+## [1] "2017-08-16 22:45:06 GMT"
 ```
 
 ```r
@@ -666,7 +666,7 @@ now("UTC")
 ```
 
 ```
-## [1] "2017-08-16 22:40:33 UTC"
+## [1] "2017-08-16 22:45:06 UTC"
 ```
 
 ```r
@@ -678,7 +678,7 @@ now("UTC+13:00")
 ```
 
 ```
-## [1] "2017-08-16 09:40:33 UTC"
+## [1] "2017-08-16 09:45:06 UTC"
 ```
 
 ```r
@@ -990,7 +990,7 @@ now("US/Pacific")
 ```
 
 ```
-## [1] "2017-08-16 15:40:33 PDT"
+## [1] "2017-08-16 15:45:06 PDT"
 ```
 
 ## 3 Implement a fizzbuzz function. It takes a single number as input. If the number is divisible by three, it returns “fizz”. If it’s divisible by five it returns “buzz”. If it’s divisible by three and five, it returns “fizzbuzz”. Otherwise, it returns the number. Make sure you first write working code before you create the function.
@@ -1099,5 +1099,30 @@ fizzbuzz(15)
 fizzbuzz(2)
 ```
 
+## 4 How could you use cut() to simplify this set of nested if-else statements?
+
+
+```r
+temp.rating <- function(x) {
+  temp <- x
+  if (temp <= 0) {
+    "freezing"
+  } else if (temp <= 10) {
+    "cold"
+  } else if (temp <= 20) {
+    "cool"
+  } else if (temp <= 30) {
+    "warm"
+  } else {
+    "hot"
+  }
+}
+
+temp.rating(15)
+```
+
+```
+## [1] "cool"
+```
 
 
