@@ -2,7 +2,9 @@
 title: "2017-09-06_iteration_part1.Rmd"
 author: "Stacey Harmer"
 date: "9/6/2017"
-output: html_document
+output: 
+  html_document: 
+    keep_md: yes
 ---
 
 Ch 21 (for loops/iteration) through 21.4
@@ -34,6 +36,11 @@ output
 
 ## WHY does seq_along count columns??  
 
+output <- vector()  # 1. output
+for (i in seq_along(df)) {            # 2. sequence
+  output[[i]] <- median(df[[i]])      # 3. body
+}
+output
 ```
 
 ## 21.2.1  For loop exercises
