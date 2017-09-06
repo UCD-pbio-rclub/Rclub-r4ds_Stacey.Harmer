@@ -1,0 +1,390 @@
+---
+title: "2017-09-06_iteration_part1.Rmd"
+author: "Stacey Harmer"
+date: "9/6/2017"
+output: html_document
+---
+
+Ch 21 (for loops/iteration) through 21.4
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+Imperative programming = for loops, and while loops
+functional programming = each common for loop gets its own function
+
+## 21.2  For loops
+
+```{r}
+df <- tibble(
+  a = rnorm(10),
+  b = rnorm(10),
+  c = rnorm(10),
+  d = rnorm(10)
+)
+df
+
+output <- vector("double", ncol(df))  # 1. output
+for (i in seq_along(df)) {            # 2. sequence
+  output[[i]] <- median(df[[i]])      # 3. body
+}
+output
+
+## WHY does seq_along count columns??  
+
+```
+
+## 21.2.1  For loop exercises
+
+### 1. Write for loops to:
+
+1. Compute the mean of every column in mtcars.
+```{r}
+head(mtcars)
+summary(mtcars)
+
+mtcars.means <- vector("double", ncol(mtcars))  
+     for (i in seq_along(mtcars)) {            
+     mtcars.means[[i]] <- mean(mtcars[[i]])      
+   }
+mtcars.means
+
+output <- vector("double", ncol(mtcars))
+names(output) <- names(mtcars) # nice touch
+
+```
+
+2. Determine the type of each column in nycflights13::flights.
+
+```{r}
+head(nycflights13::flights)
+
+flight.types <- vector("character", ncol(nycflights13::flights))
+for (i in seq_along(nycflights13::flights)) {
+  flight.types[[i]] <- typeof(nycflights13::flights[[i]])
+}
+
+flight.types
+# I see that the last column was 'dttm' in the tibble but is 'double' when using typeof()
+
+flight.types <- vector("list", ncol(nycflights13::flights))
+for (i in seq_along(nycflights13::flights)) {
+  flight.types[[i]] <- class(nycflights13::flights[[i]])
+}
+
+flight.types # this returned a date time for the last value
+
+```
+
+3. Compute the number of unique values in each column of iris.
+```{r}
+head(iris)
+summary(iris)
+
+# I think I need to use unique and length.  Try it:
+
+length(unique(iris$Species)) # yep
+
+unique.iris <- vector("double", ncol(iris))
+for (i in seq_along(iris)) {
+  unique.iris[[i]] <- length(unique(iris[[i]]))
+}
+unique.iris
+
+```
+
+4.  Generate 10 random normals for each of  
+μ = -10, 0, 10, and 100
+
+```{r, error = TRUE}
+mu <- c(-10, 0, 10, 100)
+rnorm(10, -10)
+# I think I'd like a dataframe rather than a vector, but will work with vector here
+
+mu.ran.norm <- vector("double", 40)
+for (i in mu) {
+  mu.ran.norm[[i]] <- rnorm(10, mu[[i]])
+}
+
+rnorm(10, mu[[1]]) # this works
+# try with a list instead of a vector
+
+mu.ran.norm <- vector("list", length(mu))
+for (i in seq_along(mu)) {
+  mu.ran.norm[[i]] <- rnorm(10, mu[[i]])
+}
+
+mu.ran.norm
+
+```
+
+### 2. Eliminate the for loop in each of the following examples by taking advantage of an existing function that works with vectors:
+
+The below is a paste function
+```{r}
+
+out <- ""
+for (x in letters) {
+  out <- stringr::str_c(out, x)
+}
+out
+library(stringr)
+str_c(letters, sep = "")
+length(str_c(letters, sep = ""))
+str_c(letters, collapse = "")
+
+```
+
+
+A roundabout way to calculate the std dev
+
+```{r}
+x <- sample(100)
+sd <- 0
+for (i in seq_along(x)) {
+  sd <- sd + (x[i] - mean(x)) ^ 2
+}
+sd
+sd <- sqrt(sd / (length(x) - 1))
+
+sd(x) # easy!
+```
+ 
+ 
+
+```{r}
+x <- runif(100)
+out <- vector("numeric", length(x))
+out[1] <- x[1] # i guess this is just to give a starting valule for out[i]
+
+for (i in 2:length(x)) {
+  out[i] <- out[i - 1] + x[i]
+}
+out
+
+# cumulative sum
+
+cumsum(x)
+
+```
+
+### 3. Combine your function writing and for loop skills:
+
+Write a for loop that prints() the lyrics to the children’s song “Alice the camel”.
+
+x <- c(5, 4, 3, 2, 1, 0)
+x <- c("five","four","three", "two", "one", "no")
+
+Alice the camel has five humps.
+for (i in seq_along(x)) {
+print("Alice the camel has")
+
+
+### 4. It’s common to see for loops that don’t preallocate the output and instead increase the length of a vector at each step:
+
+```{r, error = TRUE}
+output <- vector("integer", 0)
+for (i in seq_along(x)) {
+  output <- c(output, lengths(x[[i]]))
+}
+output
+x
+lengths(x[[995]])
+```
+Test how this affects performance vs pre-allocating vector output
+
+```{r}
+x <- rnorm(10000)
+output <- vector("integer", 0)
+ptm <- proc.time()
+for (i in seq_along(x)) {
+  output <- c(output, lengths(x[[i]]))
+}
+proc.time() - ptm
+
+#   user  system elapsed 
+#  0.161   0.072   0.237 
+
+#now preallocate
+x <- rnorm(10000)
+output <- vector("integer",  length(x))
+
+ptm <- proc.time()
+for (i in seq_along(x)) {
+  output <- c(output, lengths(x[[i]]))
+}
+proc.time() - ptm
+
+#    user  system elapsed 
+#   0.384   0.158   0.546
+
+```
+
+Huh, I must be doing something wrong.  
+
+## 21.3  For loop variations
+```{r}
+df <- tibble(
+  a = rnorm(10),
+  b = rnorm(10),
+  c = rnorm(10),
+  d = rnorm(10)
+)
+df
+x <- c(0, 5, 15,22, 60)
+range(df$a)
+
+rescale01 <- function(x) {
+  rng <- range(x, na.rm = TRUE)
+  (x - rng[1]) / (rng[2] - rng[1])
+}
+
+df$a <- rescale01(df$a)
+df$b <- rescale01(df$b)
+df$c <- rescale01(df$c)
+df$d <- rescale01(df$d)
+df
+
+# or, try the below
+df <- tibble(
+  a = rnorm(10),
+  b = rnorm(10),
+  c = rnorm(10),
+  d = rnorm(10)
+)
+df
+
+for (i in seq_along(df)) {
+  df[[i]] <- rescale01(df[[i]])
+}
+df
+```
+
+note:
+Typically you’ll be modifying a list or data frame with this sort of loop, so remember to use [[, not [. You might have spotted that I used [[ in all my for loops: I think it’s better to use [[ even for atomic vectors because it makes it clear that I want to work with a single element.
+
+#### 21.3.4 while loop
+
+```{r}
+sample(c("T", "H"), 1)
+sample(c("T", "H"), 10, replace = T)
+
+flip <- function() sample(c("T", "H"), 1)
+
+flips <- 0
+nheads <- 0
+flip()
+
+while (nheads < 3) {
+  if (flip() == "H") {
+    nheads <- nheads + 1
+  } else {
+    nheads <- 0
+  }
+  flips <- flips + 1
+}
+flips
+```
+
+
+#### 21.3.5.  Exercises
+
+##### 1. Imagine you have a directory full of CSV files that you want to read in. 
+You have their paths in a vector, files <- dir("data/", pattern = "\\.csv$", full.names = TRUE), and now want to read each one with read_csv(). Write the for loop that will load them into a single data frame.
+
+
+```{r, error= T}
+files <- dir("data/", pattern = "\\.csv$", full.names = TRUE)
+# list of names of files
+
+contents <- vector("list", length(files))
+
+for (i in seq_along(files)){
+  contents <- read_csv(files[[i]])
+}
+
+contents <- bind_row(contents)
+
+```
+
+#### 2. What happens if you use for (nm in names(x)) and x has no names? What if only some of the elements are named? What if the names are not unique?
+
+```{r}
+x <- c(A = 1, B = 2, C = 3, C = 10)
+names(x)
+
+for (ID in names(x)){
+  print(ID)
+}
+
+x <- c(1, 5, 10, 15)
+names(x) # NULL
+
+for (ID in names(x)){
+  print(ID)
+}
+ # nothing, not even an error
+
+x <- c(A = 1, 5, 2, C = 3, C = 10)
+names(x)
+
+for (ID in names(x)){
+  print(ID)
+}
+# at least here you get an indication that some have no names
+
+```
+
+#### 3. Write a function that prints the mean of each numeric column in a data frame, along with its name. For example, show_mean(iris) would print:
+
+show_mean(iris)
+ Sepal.Length: 5.84
+ Sepal.Width:  3.06
+ Petal.Length: 3.76
+ Petal.Width:  1.20
+ 
+ 
+```{r}
+
+head(iris)
+names(iris) # first 4 columns are numeric
+
+iris.mean <- function(df) {
+  for(ID in names(df)){
+    if(is.numeric(df[[ID]])) {
+      cat(ID, mean(df[[ID]]))
+    }
+  }
+}
+
+iris.mean(iris)
+# not so pretty, but so what?
+
+```
+
+#### 4. What does this code do? How does it work?
+```{r, error = TRUE}
+trans <- list( 
+  disp = function(x) x * 0.0163871,
+  am = function(x) {
+    factor(x, labels = c("auto", "manual"))
+  }
+)
+
+# OK, this makes a list, disp = x* 0.016 and am now a factor.
+
+for (var in names(trans)) { # that is, disp and am
+  mtcars[[var]] <- trans[[var]](mtcars[[var]])
+}
+head(mtcars)
+
+# columns are titled disp (Displacement) and am (automatic = 0, manual = 1)
+
+trans(mtcars[[disp]])(mtcars[[disp]]) # fail
+
+trans[["am"]](mtcars[["am"]]) # ok, that makes sense
+
+```
+

@@ -112,10 +112,19 @@ stringr::str_c(letters[1:10], collapse = ", ") # this does not generate an error
 
 stringr::str_c(letters[1:10], collapse = "-")  # nor does this
 
+
+stringr::str_c(letters[1:10], collapse = collapse)  # this does genearte error
+
+
 commas <- function(...) stringr::str_c(..., collapse = ", ")
 commas(letters[1:10]) # no error
 
 commas(letters[1:10], collapse = ", ") # error
+
+# OR
+
+commas <- function(..., collapse = ",") stringr::str_c(..., collapse = collapse)
+commas(letters[1:10], collapse = "-") # that works OK
 ```
 
 Why is it differnet when collapse called within a function vs outside of it?
@@ -156,6 +165,14 @@ rule <- function(..., pad = "-!-") {
 }
 rule("Important output") 
  
+# or this is a better answer
+rule <- function(..., pad = "-!-") {
+  title <- paste0(...)
+  width <- (getOption("width") - nchar(title) - 5)/nchar(pad)
+  cat(title, " ", stringr::str_dup(pad, width), "\n", sep = "")
+}
+rule("Important output") 
+
 
 ```
 
@@ -178,9 +195,9 @@ cor(c(1:10, 55, 77), c(2:11, 150, 999), method = "pearson") # 0.8779594
 cor(c(1:10, 55, 77), c(2:11, 150, 999), method = "kendall") # 1
 cor(c(1:10, 55, 77), c(2:11, 150, 999), method = "spearman")  # 1
 cor(c(1:10, 55, 77), c(2:11, 150, 999)) # 0.8779594
-
 ```
 So yes, Pearson is default method for cor()
+Not clear when you'd use kendall.  it is slow.
 
 ## 19.6 
 
@@ -211,6 +228,12 @@ show_missings <- function(df) {
   
   invisible(df)
 }
+
+show_missings <- function(df) {
+  n <- sum(is.na(df))
+  cat("Missing values: ", n, "\n", sep = "")
+}
+
 show_missings(mtcars)
 
 x <- show_missings(mtcars) 
@@ -350,7 +373,7 @@ typeof(x) # double
 x <- as.integer(x)
 typeof(x) # integer
 
-x <- c(3, 5, 11)
+x <- c(3, 5, 11, 3.9)
 typeof(x) # double
 
 make.int <- function(x){
@@ -383,6 +406,10 @@ typeof(round(x)) # still double, but it seems like it should work
 round(x, digits = 0)
 y <- round(x, digits = 0)
 typeof(y) # double.  weird
+
+
+x <- 3.9
+typeof(as.vector(x, mode = "integer")) # rounds down, though
 
 ```
 
@@ -435,5 +462,8 @@ typeof(mtcars$mpg) # double
 typeof(parse_integer(mtcars$mpg)) # integer
 
 ```
+
+Next time: finish up vector chapter
+following week: Ch 21 (for loops/iteration) through 21.4
 
 
