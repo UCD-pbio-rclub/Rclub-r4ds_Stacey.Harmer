@@ -1,0 +1,520 @@
+---
+title: "R Notebook"
+output: 
+  html_document: 
+    keep_md: yes
+---
+Section 21: part 4 - end
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# 21.4
+```{r}
+df <- tibble(
+  a = rnorm(10),
+  b = rnorm(10),
+  c = rnorm(10),
+  d = rnorm(10)
+)
+
+output <- vector("double", length(df))
+for (i in seq_along(df)) {
+  output[[i]] <- mean(df[[i]])
+}
+output
+
+```
+
+make that a function
+
+```{r}
+col_mean <- function(df) {
+  output <- vector("double", length(df))
+  for (i in seq_along(df)) {
+    output[i] <- mean(df[[i]])
+  }
+  output
+}
+
+col_mean(df)
+
+```
+
+but, we can pass one function to another!  
+```{r}
+col_summary <- function(df, fun) {
+  out <- vector("double", length(df))
+  for (i in seq_along(df)) {
+    out[i] <- fun(df[[i]])
+  }
+  out
+}
+col_summary(df, median)
+col_summary(df, sum)
+
+```
+
+##21.4.1 Exercises
+
+1.  Read the help file for apply().  In the 2d case, what two for loops does it generate?
+
+I have no idea what the 2d case means. 
+
+2.  Adapt col_summary() so that it only applies to numeric columns 
+```{r}
+#  start with an is_numeric() function that returns a logical vector that has a TRUE corresponding to each numeric column.
+
+col_summary2 <- function(df, fun) {
+  # test whether each colum is numeric
+  numeric_cols <- vector("logical", length(df))
+  for (i in seq_along(df)) {
+    numeric_cols[[i]] <- is.numeric(df[[i]])
+  }
+  # indexes of numeric columns
+  idxs <- seq_along(df)[numeric_cols]
+  # number of numeric columns
+  n <- sum(numeric_cols)
+  out <- vector("double", n)
+  for (i in idxs) {
+    out[i] <- fun(df[[i]])
+  }
+  out
+}
+
+# whoa, that was complicated
+
+col_summary_rev <- function(df, fun) {
+  out <- vector("double", length(df))
+  for (i in seq_along(df)) {
+    out[i] <- fun(df[[i]])
+  }
+  out
+}
+
+```
+
+# 21.5  The map functions
+
+```{r}
+map_dbl(df, mean)
+
+map_dbl(df, median)
+
+```
+
+An even more transparent method:
+```{r}
+
+df %>% map_dbl(mean)
+```
+
+## 21.5.1  Shortcuts
+
+```{r}
+models <- mtcars %>% 
+  split(.$cyl) %>%  # that is handy! 
+  map(function(df) lm(mpg ~ wt, data = df))
+
+# or
+
+models <- mtcars %>% 
+  split(.$cyl) %>% 
+  map(~lm(mpg ~ wt, data = .))
+```
+
+ now extract summary
+ 
+```{r}
+models %>% 
+  map(summary) %>% 
+  map_dbl(~.$r.squared)
+
+# or more concisely
+models %>% 
+  map(summary) %>% 
+  map_dbl("r.squared")
+
+```
+
+#  21.5.2  Base R
+
+```{r}
+x1 <- list(
+  c(0.27, 0.37, 0.57, 0.91, 0.20),
+  c(0.90, 0.94, 0.66, 0.63, 0.06), 
+  c(0.21, 0.18, 0.69, 0.38, 0.77)
+)
+x2 <- list(
+  c(0.50, 0.72, 0.99, 0.38, 0.78), 
+  c(0.93, 0.21, 0.65, 0.13, 0.27), 
+  c(0.39, 0.01, 0.38, 0.87, 0.34)
+)
+
+threshold <- function(x, cutoff = 0.8) x[x > cutoff]
+x1 %>% sapply(threshold) %>% str()
+x2 %>% sapply(threshold) %>% str()
+```
+
+## 21.5.3  MAP function exercises
+
+1.  Write code that uses one of the map functions to:
+
+1. Compute the mean of every column in mtcars.
+
+```{r}
+head(mtcars)
+
+map_dbl(mtcars, mean) # easy!
+```
+
+2. Determine the type of each column in nycflights13::flights.
+```{r}
+head(nycflights13::flights)
+map_chr(nycflights13::flights, typeof)
+```
+doesn't get the datetime right for last column
+```{r}
+map(nycflights13::flights, class)
+# this gives list of differnet types
+```
+
+3. Compute the number of unique values in each column of iris.
+
+```{r, error = TRUE}
+head(iris)
+map_dbl(iris, length(unique())) # didn't like that 
+
+map_dbl(iris, function(df) length(unique(df)), data = df) # didn't like that
+# I think length tried to cope wiht entire df, not column
+map_dbl(iris, function(df) length(unique()), data = df) # same problem
+map_dbl(iris, function(df) length(unique(df))) # this works
+
+map_dbl(iris, ~ length(unique(.))) # this works
+
+```
+
+4. Generate 10 random normals for each of   μ = -10, 0, 10, and 100
+
+```{r, error = TRUE}
+
+x <- 0
+rnorm(10, mean = x)
+
+x <- c(-10,0,10,100)
+
+map_dbl(n = 10, rnorm, mean = x) # nope
+
+map(n = 10, rnorm, mean = x) # nope
+
+map(x, rnorm, n = 10) # order matters here b/c map will split up the first element (either by column or by element)
+```
+
+2. How can you create a single vector that for each column in a data frame indicates whether or not it’s a factor?
+
+```{r}
+map_lgl(df, is.factor)
+
+```
+
+3. What happens when you use the map functions on vectors that aren’t lists? What does map(1:5, runif) do? Why?
+
+```{r}
+?runif
+runif(10)
+map(1:5, runif)
+
+```
+
+Generated a list of 5 elements. 
+
+4. What does map(-2:2, rnorm, n = 5) do? Why? 
+```{r}
+
+ map(-2:2, rnorm, n = 5)
+```
+
+Generates list with 5 elements, each with 5 components.  rnorm
+
+What does map_dbl(-2:2, rnorm, n = 5) do? Why?
+```{r, error = T}
+map_dbl(-2:2, rnorm, n = 5)
+
+```
+This fails to run.  presumably because it can't handle a list
+```{r}
+rnorm(0, n = 5)
+```
+
+5. Rewrite map(x, function(df) lm(mpg ~ wt, data = df)) to eliminate the anonymous function
+
+```{r, error = TRUE}
+
+map(x, function(df) lm(mpg ~ wt, data = df))
+
+map(x, ~lm(mpg ~ wt, data = .))
+
+list(mtcars)
+
+map(list(mtcars), ~lm(mpg ~ wt, data = .)) # more complete
+```
+
+#21.6   Dealing with failure
+
+```{r}
+x <- list(1, 10, "a")
+y <- x %>% map(safely(log))
+str(y)
+
+transpose(y)
+y <- y %>% transpose()
+str(y)
+
+is_ok <- y$error %>% map_lgl(is_null)
+x[!is_ok]
+#> [[1]]
+#> [1] "a"
+y$result[is_ok] %>% flatten_dbl()
+
+
+```
+
+```{r}
+list(1, -1)
+```
+
+#21.7  Mapping over multiple arguments
+
+map2()
+
+Note that the arguments that vary for each call come before the function; arguments that are the same for every call come after.
+
+##21.7.1  Invoking differnet functions
+
+```{r}
+
+f <- c("runif", "rnorm", "rpois")
+param <- list(
+  list(min = -1, max = 1), 
+  list(sd = 5), 
+  list(lambda = 10)
+)
+
+
+sim <- tribble(
+  ~f,      ~params,
+  "runif", list(min = -1, max = 1),
+  "rnorm", list(sd = 5),
+  "rpois", list(lambda = 10)
+)
+sim[[2]]
+sim[[1]]
+
+sim %>% 
+  mutate(sim = invoke_map(f, params, n = 10))
+
+```
+
+#21.8  Walk
+
+```{r}
+x <- list(1, "a", 3)
+
+x %>% 
+  walk(print)
+
+?pwalk
+```
+
+#21.9  Other patterns of for loops
+
+##21.9.1  Predicate
+
+keep and discard
+
+```{r}
+iris %>% 
+  keep(is.factor) %>% 
+  str()
+
+
+iris %>% 
+  discard(is.factor) %>% 
+  str()
+```
+
+some and every
+
+```{r}
+x <- list(1:5, letters, list(10))
+
+x %>% 
+  some(is_character)
+#> [1] TRUE
+
+x %>% 
+  every(is_vector)
+```
+
+detect - finds first element
+
+```{r}
+x <- sample(10)
+x
+
+x %>% 
+  detect(~ . > 5)
+
+x %>% 
+  detect_index(~ . > 5)
+```
+
+head_while
+
+```{r}
+x
+x %>% 
+  head_while(~ . > 5)
+
+x %>% 
+  tail_while(~ . > 5)
+```
+
+## 21.9.2  reduce and accumulate
+
+```{r}
+dfs <- list(
+  age = tibble(name = "John", age = 30),
+  sex = tibble(name = c("John", "Mary"), sex = c("M", "F")),
+  trt = tibble(name = "Mary", treatment = "A")
+)
+
+1:3 %>% reduce(`+`)
+reduce(1:3, `+`)
+reduce(1:3, sum)
+
+dfs %>% reduce(full_join)
+```
+
+Or
+
+```{r}
+vs <- list(
+  c(1, 3, 5, 6, 10),
+  c(1, 2, 3, 7, 8, 10),
+  c(1, 2, 3, 4, 8, 9, 10)
+)
+
+vs %>% reduce(intersect)
+
+reduce(vs, intersect)
+```
+
+## 21.9.3  Exercises
+
+1. Implement your own version of every() using a for loop. Compare it with purrr::every(). What does purrr’s version do that your version doesn’t?
+
+```{r}
+x <- list(1:5, letters, list(10))
+
+x %>% 
+  every(is_vector)
+```
+
+I want the loop to examine every vector in my list and tell me if each meets criterion
+
+```{r}
+
+output <- vector("logical", ncol(df))  # 1. output
+for (i in seq_along(df)) {            # 2. sequence
+  output[[i]] <- median(df[[i]])      # 3. body
+}
+output
+
+my_every <- function(df, fun) {
+  out <- vector("logical", length(df))
+  for (i in seq_along(df)) {
+    out[i] <- fun(df[[i]])
+  }
+  out
+}
+
+x <- list(1:5, letters, list(10))
+
+x %>% 
+  every(is_vector)
+
+my_every(x, is_vector)
+
+```
+
+2. Create an enhanced col_sum() that applies a summary function to every numeric column in a data frame.
+
+```{r, error = TRUE}
+col_summary <- function(df, fun) {
+  out <- vector("double", length(df))
+  for (i in seq_along(df)) {
+    out[i] <- fun(df[[i]])
+  }
+  out
+}
+
+col_summary(iris, median) # error
+
+col_summary2 <- function(df, fun) {
+  temp <- keep(df, is.numeric)
+  out <- vector("double", length(temp))
+  for (i in seq_along(temp)) {
+    out[i] <- fun(temp[[i]])
+  }
+  out
+}
+
+col_summary2(iris, median)
+
+# or more simply
+
+col_summary3 <- function(df, f, ...) {
+  map(keep(df, is.numeric), f, ...)
+}
+
+col_summary3(iris, median)
+
+```
+
+3. A possible base R equivalent of col_sum() is:
+
+```{r}
+
+col_sum3 <- function(df, f) {
+  is_num <- sapply(df, is.numeric)
+  df_num <- df[, is_num]
+
+  sapply(df_num, f)
+}
+
+```
+
+But problems may arise:
+```{r}
+df <- tibble(
+  x = 1:3, 
+  y = 3:1,
+  z = c("a", "b", "c")
+)
+
+# OK
+col_sum3(df, mean) doesn't return anything for non-numeric column
+col_summary2(df, mean) #  my version is same
+
+# Has problems: don't always return numeric vector
+col_sum3(df[1:2], mean)
+col_summary2(df[1:2], mean) 
+
+col_sum3(df[1], mean)
+col_sum3(df[0], mean)
+
+```
+

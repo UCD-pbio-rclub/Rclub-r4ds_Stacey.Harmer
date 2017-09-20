@@ -110,6 +110,8 @@ mu <- c(-10, 0, 10, 100)
 rnorm(10, -10)
 # I think I'd like a dataframe rather than a vector, but will work with vector here
 
+# should have made a matrix or a tibble, not a vector
+
 mu.ran.norm <- vector("double", 40)
 for (i in mu) {
   mu.ran.norm[[i]] <- rnorm(10, mu[[i]])
@@ -220,7 +222,7 @@ output <- vector("integer",  length(x))
 
 ptm <- proc.time()
 for (i in seq_along(x)) {
-  output <- c(output, lengths(x[[i]]))
+  output[[i]] <-  lengths(x[[i]])
 }
 proc.time() - ptm
 
@@ -229,7 +231,7 @@ proc.time() - ptm
 
 ```
 
-Huh, I must be doing something wrong.  
+Julin helped me fix it - see above.
 
 ## 21.3  For loop variations
 ```{r}
@@ -309,7 +311,7 @@ files <- dir("data/", pattern = "\\.csv$", full.names = TRUE)
 contents <- vector("list", length(files))
 
 for (i in seq_along(files)){
-  contents <- read_csv(files[[i]])
+  contents[i] <- read_csv(files[[i]])
 }
 
 contents <- bind_row(contents)
@@ -393,5 +395,53 @@ trans(mtcars[[disp]])(mtcars[[disp]]) # fail
 
 trans[["am"]](mtcars[["am"]]) # ok, that makes sense
 
+```
+ 
+##  21.4  Functionals and for loops
+
+```{r}
+
+df <- tibble(
+  a = rnorm(10),
+  b = rnorm(10),
+  c = rnorm(10),
+  d = rnorm(10)
+)
+df
+
+# compute mean for every column
+output <- vector("double", length(df))
+for (i in seq_along(df)) {
+  output[[i]] <- mean(df[[i]])
+}
+output
+
+# make this a function
+
+col_mean <- function(df) {
+  output <- vector("double", length(df))
+  for (i in seq_along(df)) {
+    output[i] <- mean(df[[i]])
+  }
+  output
+}
+
+col_mean(df)
+```
+
+but how to generalize?
+
+```{r}
+col_summary <- function(df, fun) {
+  out <- vector("double", length(df))
+  for (i in seq_along(df)) {
+    out[i] <- fun(df[[i]])
+  }
+  out
+}
+
+col_summary(df, median)
+col_summary(df, mean)
+col_summary(df, sd)
 ```
 
